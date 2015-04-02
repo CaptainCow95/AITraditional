@@ -13,7 +13,26 @@ Move Agent::nextMove() {
 	// Somehow select your next move
 	std::vector<Move> moves;
 	state.getMoves(moves);
-	return moves[0];
+
+	Move bestMove = moves[0];
+	int bestMoveRowDifference = 0;
+	for (std::vector<Move>::iterator iter = moves.begin(); iter != moves.end(); ++iter)
+	{
+		int startRow = iter->from / 9;
+		int endRow = iter->to / 9;
+
+		int startColumn = iter->from % 9;
+		int endColumn = iter->to % 9;
+
+		int value = endRow - startRow + endColumn - startColumn;
+
+		if (value > bestMoveRowDifference)
+		{
+			bestMove = *iter;
+			bestMoveRowDifference = value;
+		}
+	}
+	return bestMove;
 }
 
 void Agent::playGame() {

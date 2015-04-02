@@ -54,10 +54,9 @@ bool ChineseCheckersState::applyMove(Move m) {
 
 	// Check the move
 	// FIXME: This should be uncommented once you have getMoves working!!
-	/*
+
 	if (!isValidMove(m))
-	return false;
-	*/
+		return false;
 
 	// Apply the move
 	std::swap(board[m.from], board[m.to]);
@@ -199,7 +198,7 @@ bool ChineseCheckersState::checkJumpMove(std::vector<Move> &moves, Move move, un
 	unsigned row = move.to / 9;
 	unsigned col = move.to % 9;
 
-	if (row < 0 || row > 9 || col < 0 || col > 9)
+	if (row < 0 || row >= 9 || col < 0 || col >= 9)
 	{
 		return false;
 	}
