@@ -73,10 +73,10 @@ public:
 	// Translates a sequence of tokens from the move format used to the local move type
 	Move translateToLocal(const std::vector<std::string> &tokens) const;
 
-private:
 	std::array<int, 81> board;
 	int currentPlayer;
 
+private:
 	void getMovesSingleStep(std::vector<Move> &moves, unsigned from) const;
 	void getMovesJump(std::vector<Move> &moves, unsigned from) const;
 	void getMovesJumpRecursive(std::vector<Move> &move, unsigned from, unsigned at) const;

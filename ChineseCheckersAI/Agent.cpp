@@ -5,34 +5,145 @@
 #include <iterator>
 #include <sstream>
 #include <string>
+#include <time.h>
 #include <vector>
 
 Agent::Agent() : name("MyName") {}
 
 Move Agent::nextMove() {
-	// Somehow select your next move
+	time_t startTime;
+	time(&startTime);
+
+	Move bestMove;
+	Move move;
+	int maxDepth = 1;
+	while (getBestMove(state, 0, maxDepth, startTime + SECONDS_PER_TURN, move) != TIMEOUT)
+	{
+		bestMove = move;
+		++maxDepth;
+	}
+
+	std::cerr << "Reached depth of " << (maxDepth - 1) << std::endl;
+	//fprintf(stderr, "Reached depth of %u", maxDepth - 1);
+	return bestMove;
+}
+
+int Agent::getBestMove(ChineseCheckersState& state, unsigned depth, unsigned maxDepth, time_t endTime, Move& move) // move is an out parameter
+{
+	time_t currentTime;
+	time(&currentTime);
+	if (currentTime >= endTime)
+	{
+		return TIMEOUT;
+	}
+
+	if (depth >= maxDepth)
+	{
+		return evaluatePosition(state);
+	}
+
+	if (state.gameOver())
+	{
+		if (state.winner() == my_player + 1)
+		{
+			return INT_MAX;
+		}
+		else
+		{
+			return INT_MIN;
+		}
+	}
+
 	std::vector<Move> moves;
 	state.getMoves(moves);
 
-	Move bestMove = moves[0];
-	int bestMoveRowDifference = 0;
-	for (std::vector<Move>::iterator iter = moves.begin(); iter != moves.end(); ++iter)
+	std::vector<Move> bestMoves;
+	state.applyMove(moves[0]);
+	int total = getBestMove(state, depth + 1, maxDepth, endTime, move);
+	bestMoves.push_back(moves[0]);
+	state.undoMove(moves[0]);
+
+	// TODO: Randomly select among ties for best move
+	for (unsigned i = 1; i < moves.size(); ++i)
 	{
-		int startRow = iter->from / 9;
-		int endRow = iter->to / 9;
+		state.applyMove(moves[i]);
+		int value = getBestMove(state, depth + 1, maxDepth, endTime, move);
+		state.undoMove(moves[i]);
 
-		int startColumn = iter->from % 9;
-		int endColumn = iter->to % 9;
-
-		int value = endRow - startRow + endColumn - startColumn;
-
-		if (value > bestMoveRowDifference)
+		if (value == TIMEOUT)
 		{
-			bestMove = *iter;
-			bestMoveRowDifference = value;
+			return TIMEOUT;
+		}
+
+		if (state.currentPlayer == my_player + 1)
+		{
+			// Take the max as this is our move
+			if (value > total)
+			{
+				total = value;
+				bestMoves.clear();
+				bestMoves.push_back(moves[i]);
+			}
+		}
+		else
+		{
+			// Take the min as this is our opponents move
+			if (value < total)
+			{
+				total = value;
+				bestMoves.clear();
+				bestMoves.push_back(moves[i]);
+			}
+		}
+
+		if (value == total)
+		{
+			bestMoves.push_back(moves[i]);
 		}
 	}
-	return bestMove;
+
+	move = bestMoves[rand() % bestMoves.size()];
+	return total;
+}
+
+int Agent::evaluatePosition(ChineseCheckersState& state)
+{
+	int total = 0;
+	for (int i = 0; i < 81; ++i)
+	{
+		if (state.board[i] != 0)
+		{
+			int player = state.board[i];
+			int distance = calculateDistanceToHome(state, i, player);
+			if (player == state.currentPlayer)
+			{
+				total += distance;
+			}
+			else
+			{
+				total -= distance;
+			}
+		}
+	}
+
+	return total;
+}
+
+int Agent::calculateDistanceToHome(ChineseCheckersState& state, unsigned piece, unsigned player)
+{
+	int row = piece / 9;
+	int col = piece % 9;
+
+	if (player == 1)
+	{
+		// if the row + col is at least 13, then the piece is in the home position
+		return std::max(13 - (row + col), 0);
+	}
+	else
+	{
+		// if the row + col is 3 or less, then the piece is in the home position
+		return std::max((row + col) - 3, 0);
+	}
 }
 
 void Agent::playGame() {
