@@ -10,6 +10,7 @@
 class Agent {
 public:
 	Agent();
+	~Agent();
 	void playGame();
 
 private:
@@ -28,13 +29,16 @@ private:
 	int calculateDistanceToHome(ChineseCheckersState& state, unsigned piece, unsigned player);
 
 	const int TIMEOUT = INT_MAX - 1;
-	const int SECONDS_PER_TURN = 10;
+	const int SECONDS_PER_TURN = 20;
 	ChineseCheckersState state;
 	enum Players { player1, player2 };
 	Players current_player;
 	Players my_player;
 	std::string name;
 	std::string opp_name;
+	unsigned operations;
+	std::vector<std::vector<Move>*>* moveVectorCache;
+	std::vector<std::vector<Move>*>* bestMoveVectorCache;
 };
 
 #endif

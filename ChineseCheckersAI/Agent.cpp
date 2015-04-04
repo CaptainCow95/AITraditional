@@ -10,26 +10,56 @@
 
 Agent::Agent() : name("MyName") {}
 
+Agent::~Agent()
+{
+	for (unsigned i = 0; i < moveVectorCache->size(); ++i)
+	{
+		delete moveVectorCache->at(i);
+		delete bestMoveVectorCache->at(i);
+	}
+
+	delete moveVectorCache;
+	delete bestMoveVectorCache;
+}
+
 Move Agent::nextMove() {
+	if (moveVectorCache == NULL)
+	{
+		moveVectorCache = new std::vector<std::vector<Move>*>();
+		bestMoveVectorCache = new std::vector<std::vector<Move>*>();
+
+		moveVectorCache->push_back(new std::vector<Move>());
+		bestMoveVectorCache->push_back(new std::vector<Move>());
+	}
+
 	time_t startTime;
 	time(&startTime);
 
 	Move bestMove;
 	Move move;
-	int maxDepth = 1;
+	unsigned maxDepth = 1;
+	operations = 0;
 	while (getBestMove(state, 0, maxDepth, startTime + SECONDS_PER_TURN, move) != TIMEOUT)
 	{
 		bestMove = move;
 		++maxDepth;
+
+		if (moveVectorCache->size() < maxDepth)
+		{
+			moveVectorCache->push_back(new std::vector<Move>());
+			bestMoveVectorCache->push_back(new std::vector<Move>());
+		}
 	}
 
 	std::cerr << "Reached depth of " << (maxDepth - 1) << std::endl;
-	//fprintf(stderr, "Reached depth of %u", maxDepth - 1);
+	std::cerr << "Processed " << (operations / SECONDS_PER_TURN) << " operations per second" << std::endl;
+
 	return bestMove;
 }
 
 int Agent::getBestMove(ChineseCheckersState& state, unsigned depth, unsigned maxDepth, time_t endTime, Move& move) // move is an out parameter
 {
+	++operations;
 	time_t currentTime;
 	time(&currentTime);
 	if (currentTime >= endTime)
@@ -54,21 +84,21 @@ int Agent::getBestMove(ChineseCheckersState& state, unsigned depth, unsigned max
 		}
 	}
 
-	std::vector<Move> moves;
-	state.getMoves(moves);
+	std::vector<Move>* moves = moveVectorCache->at(depth);
+	state.getMoves(*moves);
 
-	std::vector<Move> bestMoves;
-	state.applyMove(moves[0]);
+	std::vector<Move>* bestMoves = bestMoveVectorCache->at(depth);
+	state.applyMove(moves->at(0));
 	int total = getBestMove(state, depth + 1, maxDepth, endTime, move);
-	bestMoves.push_back(moves[0]);
-	state.undoMove(moves[0]);
+	bestMoves->push_back(moves->at(0));
+	state.undoMove(moves->at(0));
 
 	// TODO: Randomly select among ties for best move
-	for (unsigned i = 1; i < moves.size(); ++i)
+	for (unsigned i = 1; i < moves->size(); ++i)
 	{
-		state.applyMove(moves[i]);
+		state.applyMove(moves->at(i));
 		int value = getBestMove(state, depth + 1, maxDepth, endTime, move);
-		state.undoMove(moves[i]);
+		state.undoMove(moves->at(i));
 
 		if (value == TIMEOUT)
 		{
@@ -81,8 +111,8 @@ int Agent::getBestMove(ChineseCheckersState& state, unsigned depth, unsigned max
 			if (value > total)
 			{
 				total = value;
-				bestMoves.clear();
-				bestMoves.push_back(moves[i]);
+				bestMoves->clear();
+				bestMoves->push_back(moves->at(i));
 			}
 		}
 		else
@@ -91,18 +121,18 @@ int Agent::getBestMove(ChineseCheckersState& state, unsigned depth, unsigned max
 			if (value < total)
 			{
 				total = value;
-				bestMoves.clear();
-				bestMoves.push_back(moves[i]);
+				bestMoves->clear();
+				bestMoves->push_back(moves->at(i));
 			}
 		}
 
 		if (value == total)
 		{
-			bestMoves.push_back(moves[i]);
+			bestMoves->push_back(moves->at(i));
 		}
 	}
 
-	move = bestMoves[rand() % bestMoves.size()];
+	move = bestMoves->at(rand() % bestMoves->size());
 	return total;
 }
 
