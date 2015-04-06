@@ -198,8 +198,8 @@ void ChineseCheckersState::getMovesJump(std::vector<Move> &moves, unsigned from)
 }
 
 bool ChineseCheckersState::checkJumpMove(std::vector<Move> &moves, Move move, unsigned last) const {
-	unsigned row = move.to / 9;
-	unsigned col = move.to % 9;
+	int row = move.to / 9;
+	int col = move.to % 9;
 
 	if (row < 0 || row >= 9 || col < 0 || col >= 9)
 	{
