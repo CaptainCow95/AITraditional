@@ -32,16 +32,17 @@ Move Agent::nextMove() {
 		bestMoveVectorCache->push_back(new std::vector<Move>());
 	}
 
-	time_t startTime;
-	time(&startTime);
+	std::chrono::system_clock::time_point startTime = std::chrono::system_clock::now();
 
 	Move bestMove;
 	Move move;
 	unsigned maxDepth = 1;
 	operations = 0;
 
+	int moveValue = getBestMove(state, 0, maxDepth, startTime + std::chrono::milliseconds(SECONDS_PER_TURN * 1000 - 500), evaluatePosition(state), move);
+
 	// Keep trying to go deeper and deeper in the search for the best move until we run out of time
-	while (getBestMove(state, 0, maxDepth, startTime + SECONDS_PER_TURN, evaluatePosition(state), move) != TIMEOUT)
+	while (moveValue != TIMEOUT && moveValue != INT_MAX)
 	{
 		// Store the best move and try to go deeper the next time
 		bestMove = move;
@@ -53,6 +54,8 @@ Move Agent::nextMove() {
 			moveVectorCache->push_back(new std::vector<Move>());
 			bestMoveVectorCache->push_back(new std::vector<Move>());
 		}
+
+		moveValue = getBestMove(state, 0, maxDepth, startTime + std::chrono::milliseconds(SECONDS_PER_TURN * 1000 - 500), evaluatePosition(state), move);
 	}
 
 	std::cerr << "Reached depth of " << (maxDepth - 1) << std::endl;
@@ -61,12 +64,10 @@ Move Agent::nextMove() {
 	return bestMove;
 }
 
-int Agent::getBestMove(ChineseCheckersState& state, unsigned depth, unsigned maxDepth, time_t endTime, int positionStrength, Move& move) // move is an out parameter
+int Agent::getBestMove(ChineseCheckersState& state, unsigned depth, unsigned maxDepth, std::chrono::system_clock::time_point& endTime, int positionStrength, Move& move) // move is an out parameter
 {
 	++operations;
-	time_t currentTime;
-	time(&currentTime);
-	if (currentTime >= endTime)
+	if (std::chrono::system_clock::now() >= endTime)
 	{
 		// We ran out of time, return a timeout
 		return TIMEOUT;
@@ -75,7 +76,6 @@ int Agent::getBestMove(ChineseCheckersState& state, unsigned depth, unsigned max
 	if (depth >= maxDepth)
 	{
 		// We are at the max depth, return the current node's value
-		//return evaluatePosition(state);
 		return positionStrength;
 	}
 
@@ -127,7 +127,8 @@ int Agent::getBestMove(ChineseCheckersState& state, unsigned depth, unsigned max
 			total = value;
 			bestMoves->clear();
 		}
-		else if (state.currentPlayer == my_player + 1)
+
+		if (state.currentPlayer == my_player + 1)
 		{
 			// Take the max as this is our move
 			if (value > total)

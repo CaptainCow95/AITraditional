@@ -2,6 +2,7 @@
 #ifndef AGENT_H_INCLUDED
 #define AGENT_H_INCLUDED
 
+#include <chrono>
 #include <string>
 #include <vector>
 
@@ -25,12 +26,16 @@ private:
 	bool isValidStartGameMessage(const std::vector<std::string> &tokens) const;
 	bool isValidMoveMessage(const std::vector<std::string> &tokens) const;
 
-	int getBestMove(ChineseCheckersState& state, unsigned depth, unsigned maxDepth, time_t endTime, int positionStrength, Move& move); // move is an out parameter
+	int getBestMove(ChineseCheckersState& state, unsigned depth, unsigned maxDepth, std::chrono::system_clock::time_point& endTime, int positionStrength, Move& move); // move is an out parameter
 	int evaluatePosition(ChineseCheckersState& state);
 	int calculateDistanceToHome(ChineseCheckersState& state, unsigned piece, unsigned player);
 
 	const int TIMEOUT = INT_MAX - 1;
+#ifdef DEBUG
+	const int SECONDS_PER_TURN = 10000;
+#else
 	const int SECONDS_PER_TURN = 10;
+#endif
 	ChineseCheckersState state;
 	enum Players { player1, player2 };
 	Players current_player;
