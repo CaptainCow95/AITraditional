@@ -80,7 +80,7 @@ int Agent::getBestMove(ChineseCheckersState& state, unsigned depth, unsigned max
 
 	if (state.gameOver())
 	{
-		if (state.winner() == state.currentPlayer + 1)
+		if (state.winner() == my_player + 1)
 		{
 			// The player won, so return the max value
 			return INT_MAX;

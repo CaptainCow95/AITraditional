@@ -29,7 +29,7 @@ private:
 	int calculateDistanceToHome(ChineseCheckersState& state, unsigned piece, unsigned player);
 
 	const int TIMEOUT = INT_MAX - 1;
-	const int SECONDS_PER_TURN = 20;
+	const int SECONDS_PER_TURN = 10;
 	ChineseCheckersState state;
 	enum Players { player1, player2 };
 	Players current_player;
