@@ -39,13 +39,17 @@ Move Agent::nextMove() {
 	Move move;
 	unsigned maxDepth = 1;
 	operations = 0;
+
+	// Keep trying to go deeper and deeper in the search for the best move until we run out of time
 	while (getBestMove(state, 0, maxDepth, startTime + SECONDS_PER_TURN, move) != TIMEOUT)
 	{
+		// Store the best move and try to go deeper the next time
 		bestMove = move;
 		++maxDepth;
 
 		if (moveVectorCache->size() < maxDepth)
 		{
+			// Allocate a new vector if necessary
 			moveVectorCache->push_back(new std::vector<Move>());
 			bestMoveVectorCache->push_back(new std::vector<Move>());
 		}
@@ -64,22 +68,26 @@ int Agent::getBestMove(ChineseCheckersState& state, unsigned depth, unsigned max
 	time(&currentTime);
 	if (currentTime >= endTime)
 	{
+		// We ran out of time, return a timeout
 		return TIMEOUT;
 	}
 
 	if (depth >= maxDepth)
 	{
+		// We are at the max depth, return the current node's value
 		return evaluatePosition(state);
 	}
 
 	if (state.gameOver())
 	{
-		if (state.winner() == my_player + 1)
+		if (state.winner() == state.currentPlayer + 1)
 		{
+			// The player won, so return the max value
 			return INT_MAX;
 		}
 		else
 		{
+			// The player lost, so return the min value
 			return INT_MIN;
 		}
 	}
@@ -88,13 +96,11 @@ int Agent::getBestMove(ChineseCheckersState& state, unsigned depth, unsigned max
 	state.getMoves(*moves);
 
 	std::vector<Move>* bestMoves = bestMoveVectorCache->at(depth);
-	state.applyMove(moves->at(0));
-	int total = getBestMove(state, depth + 1, maxDepth, endTime, move);
-	bestMoves->push_back(moves->at(0));
-	state.undoMove(moves->at(0));
 
-	// TODO: Randomly select among ties for best move
-	for (unsigned i = 1; i < moves->size(); ++i)
+	// This will be set on the first iteration
+	int total;
+
+	for (unsigned i = 0; i < moves->size(); ++i)
 	{
 		state.applyMove(moves->at(i));
 		int value = getBestMove(state, depth + 1, maxDepth, endTime, move);
@@ -105,14 +111,18 @@ int Agent::getBestMove(ChineseCheckersState& state, unsigned depth, unsigned max
 			return TIMEOUT;
 		}
 
-		if (state.currentPlayer == my_player + 1)
+		if (i == 0)
+		{
+			total = value;
+			bestMoves->clear();
+		}
+		else if (state.currentPlayer == my_player + 1)
 		{
 			// Take the max as this is our move
 			if (value > total)
 			{
 				total = value;
 				bestMoves->clear();
-				bestMoves->push_back(moves->at(i));
 			}
 		}
 		else
@@ -122,7 +132,6 @@ int Agent::getBestMove(ChineseCheckersState& state, unsigned depth, unsigned max
 			{
 				total = value;
 				bestMoves->clear();
-				bestMoves->push_back(moves->at(i));
 			}
 		}
 
@@ -136,6 +145,7 @@ int Agent::getBestMove(ChineseCheckersState& state, unsigned depth, unsigned max
 	return total;
 }
 
+// Evaluates the strength of the state's position for the state's current player
 int Agent::evaluatePosition(ChineseCheckersState& state)
 {
 	int total = 0;
