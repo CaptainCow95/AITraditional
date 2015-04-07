@@ -8,7 +8,7 @@
 #include <time.h>
 #include <vector>
 
-Agent::Agent() : name("MyName") {}
+Agent::Agent() : name("Agent_NJ") {}
 
 Agent::~Agent()
 {
@@ -105,14 +105,15 @@ int Agent::getBestMove(ChineseCheckersState& state, unsigned depth, unsigned max
 	{
 		// Undo where the move is coming from
 		int newStrength = positionStrength;
-		int moveValue = calculateDistanceToHome(state, moves->at(i).from, state.currentPlayer);
-		(state.currentPlayer == my_player + 1) ? newStrength -= moveValue : newStrength += moveValue;
+		int player = state.currentPlayer;
+		int moveValue = calculateDistanceToHome(state, moves->at(i).from, player);
+		(player == my_player + 1) ? newStrength += moveValue : newStrength -= moveValue;
 
 		state.applyMove(moves->at(i));
 
 		// Redo where the move is going to
-		moveValue = calculateDistanceToHome(state, moves->at(i).to, state.currentPlayer);
-		(state.currentPlayer == my_player + 1) ? newStrength += moveValue : newStrength -= moveValue;
+		moveValue = calculateDistanceToHome(state, moves->at(i).to, player);
+		(player == my_player + 1) ? newStrength -= moveValue : newStrength += moveValue;
 		int value = getBestMove(state, depth + 1, maxDepth, endTime, newStrength, move);
 		state.undoMove(moves->at(i));
 
@@ -262,6 +263,11 @@ void Agent::playGame() {
 			}
 		}
 	}
+}
+
+void Agent::setName(std::string newName)
+{
+	name = newName;
 }
 
 // Sends a msg to stdout and verifies that the next message to come in is it

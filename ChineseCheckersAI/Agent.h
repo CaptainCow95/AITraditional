@@ -12,6 +12,7 @@ public:
 	Agent();
 	~Agent();
 	void playGame();
+	void setName(std::string newName);
 
 private:
 	Move nextMove();
