@@ -41,7 +41,7 @@ Move Agent::nextMove() {
 	operations = 0;
 
 	// Keep trying to go deeper and deeper in the search for the best move until we run out of time
-	while (getBestMove(state, 0, maxDepth, startTime + SECONDS_PER_TURN, move) != TIMEOUT)
+	while (getBestMove(state, 0, maxDepth, startTime + SECONDS_PER_TURN, evaluatePosition(state), move) != TIMEOUT)
 	{
 		// Store the best move and try to go deeper the next time
 		bestMove = move;
@@ -61,7 +61,7 @@ Move Agent::nextMove() {
 	return bestMove;
 }
 
-int Agent::getBestMove(ChineseCheckersState& state, unsigned depth, unsigned maxDepth, time_t endTime, Move& move) // move is an out parameter
+int Agent::getBestMove(ChineseCheckersState& state, unsigned depth, unsigned maxDepth, time_t endTime, int positionStrength, Move& move) // move is an out parameter
 {
 	++operations;
 	time_t currentTime;
@@ -75,7 +75,8 @@ int Agent::getBestMove(ChineseCheckersState& state, unsigned depth, unsigned max
 	if (depth >= maxDepth)
 	{
 		// We are at the max depth, return the current node's value
-		return evaluatePosition(state);
+		//return evaluatePosition(state);
+		return positionStrength;
 	}
 
 	if (state.gameOver())
@@ -102,8 +103,17 @@ int Agent::getBestMove(ChineseCheckersState& state, unsigned depth, unsigned max
 
 	for (unsigned i = 0; i < moves->size(); ++i)
 	{
+		// Undo where the move is coming from
+		int newStrength = positionStrength;
+		int moveValue = calculateDistanceToHome(state, moves->at(i).from, state.currentPlayer);
+		(state.currentPlayer == my_player + 1) ? newStrength -= moveValue : newStrength += moveValue;
+
 		state.applyMove(moves->at(i));
-		int value = getBestMove(state, depth + 1, maxDepth, endTime, move);
+
+		// Redo where the move is going to
+		moveValue = calculateDistanceToHome(state, moves->at(i).to, state.currentPlayer);
+		(state.currentPlayer == my_player + 1) ? newStrength += moveValue : newStrength -= moveValue;
+		int value = getBestMove(state, depth + 1, maxDepth, endTime, newStrength, move);
 		state.undoMove(moves->at(i));
 
 		if (value == TIMEOUT)
@@ -155,7 +165,7 @@ int Agent::evaluatePosition(ChineseCheckersState& state)
 		{
 			int player = state.board[i];
 			int distance = calculateDistanceToHome(state, i, player);
-			if (player == state.currentPlayer)
+			if (player == my_player + 1)
 			{
 				total += distance;
 			}
