@@ -358,6 +358,12 @@ void Agent::waitForStart() {
 			if (!state.applyMove(m))
 				std::cout << "Unable to apply move " << m << std::endl;
 		}
+		else if (tokens[0] == "PROFILE") {
+			for (int i = 0; i < 6; ++i)
+			{
+				nextMove();
+			}
+		}
 		else {
 			std::cerr << "Unexpected message " << response << "\n";
 		}
