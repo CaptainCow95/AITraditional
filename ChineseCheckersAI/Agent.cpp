@@ -104,16 +104,17 @@ Move Agent::nextMove() {
 int Agent::getBestMove(ChineseCheckersState& state, unsigned depth, unsigned maxDepth, std::chrono::system_clock::time_point& endTime, int positionStrength, uint64_t hash, Move& move) // move is an out parameter
 {
 	++operations;
-	if (std::chrono::system_clock::now() >= endTime)
-	{
-		// We ran out of time, return a timeout
-		return TIMEOUT;
-	}
 
 	if (depth >= maxDepth)
 	{
 		// We are at the max depth, return the current node's value
 		return positionStrength;
+	}
+
+	if (std::chrono::system_clock::now() >= endTime)
+	{
+		// We ran out of time, return a timeout
+		return TIMEOUT;
 	}
 
 	if (state.gameOver())
