@@ -8,7 +8,17 @@
 #include <time.h>
 #include <vector>
 
-Agent::Agent() : name("Agent_NJ") {}
+Agent::Agent() : name("Agent_NJ")
+{
+	transpositionTable = new TTEntry[TTSIZE];
+	memset(transpositionTable, 0, TTSIZE * sizeof(TTEntry));
+
+	srand(9167318);
+	for (int i = 0; i < 162; ++i)
+	{
+		zobristNumbers[i] = rand();
+	}
+}
 
 Agent::~Agent()
 {
@@ -32,12 +42,15 @@ Move Agent::nextMove() {
 		bestMoveVectorCache->push_back(new std::vector<Move>());
 	}
 
+	++currentTurn;
+
 	std::chrono::system_clock::time_point startTime = std::chrono::system_clock::now();
 
 	Move bestMove;
 	Move move;
 	unsigned maxDepth = 1;
 	operations = 0;
+	skipped = 0;
 
 	std::chrono::system_clock::time_point endTime;
 	if (debugging)
@@ -49,12 +62,12 @@ Move Agent::nextMove() {
 		endTime = startTime + std::chrono::milliseconds(SECONDS_PER_TURN * 1000 - 500);
 	}
 
-	int moveValue = getBestMove(state, 0, maxDepth, endTime, evaluatePosition(state), move);
+	int moveValue = getBestMove(state, 0, maxDepth, endTime, evaluatePosition(state), hash(state), move);
 
 	// Keep trying to go deeper and deeper in the search for the best move until we run out of time
 	while (moveValue != TIMEOUT && moveValue != INT_MAX)
 	{
-		if (debugging && maxDepth > this->maxDepth)
+		if (debugging && maxDepth >= this->maxDepth)
 		{
 			break;
 		}
@@ -62,6 +75,7 @@ Move Agent::nextMove() {
 		// Store the best move and try to go deeper the next time
 		bestMove = move;
 		++maxDepth;
+		++currentTurn;
 
 		if (moveVectorCache->size() < maxDepth)
 		{
@@ -70,15 +84,17 @@ Move Agent::nextMove() {
 			bestMoveVectorCache->push_back(new std::vector<Move>());
 		}
 
-		moveValue = getBestMove(state, 0, maxDepth, endTime, evaluatePosition(state), move);
+		moveValue = getBestMove(state, 0, maxDepth, endTime, evaluatePosition(state), hash(state), move);
 	}
 
-	std::cerr << "Reached depth of " << (maxDepth - 1) << std::endl;
+	std::cerr << "Reached depth of " << maxDepth << std::endl;
+	std::cerr << "Skipped: " << skipped << std::endl;
+	std::cerr << "Total collisions: " << hashCollisions << std::endl;
 
 	return bestMove;
 }
 
-int Agent::getBestMove(ChineseCheckersState& state, unsigned depth, unsigned maxDepth, std::chrono::system_clock::time_point& endTime, int positionStrength, Move& move) // move is an out parameter
+int Agent::getBestMove(ChineseCheckersState& state, unsigned depth, unsigned maxDepth, std::chrono::system_clock::time_point& endTime, int positionStrength, unsigned int hash, Move& move) // move is an out parameter
 {
 	++operations;
 	if (std::chrono::system_clock::now() >= endTime)
@@ -107,6 +123,40 @@ int Agent::getBestMove(ChineseCheckersState& state, unsigned depth, unsigned max
 		}
 	}
 
+	TTEntry entry = transpositionTable[hash % TTSIZE];
+	if (entry.turn == currentTurn && entry.currentPlayer == state.currentPlayer)
+	{
+		// found the entry in the table
+		for (int i = 0; i < 81; ++i)
+		{
+			if (((entry.board[i / 16] >> ((i % 16) * 2)) & 3) != state.board[i])
+			{
+				++hashCollisions;
+				break;
+			}
+		}
+
+		++skipped;
+		return entry.value;
+
+		/*bool collision = false;
+		for (int i = 0; i < 81; ++i)
+		{
+		if (state.board[i] != entry.board[i])
+		{
+		++hashCollisions;
+		collision = true;
+		break;
+		}
+		}
+
+		if (!collision)
+		{
+		++skipped;
+		return entry.value;
+		}*/
+	}
+
 	std::vector<Move>* moves = moveVectorCache->at(depth);
 	state.getMoves(*moves);
 
@@ -124,11 +174,14 @@ int Agent::getBestMove(ChineseCheckersState& state, unsigned depth, unsigned max
 		(player == my_player + 1) ? newStrength += moveValue : newStrength -= moveValue;
 
 		state.applyMove(moves->at(i));
+		unsigned int newHash = hash;
+		hash ^= zobristNumbers[moves->at(i).from * player];
+		hash ^= zobristNumbers[moves->at(i).to * player];
 
 		// Redo where the move is going to
 		moveValue = calculateDistanceToHome(state, moves->at(i).to, player);
 		(player == my_player + 1) ? newStrength -= moveValue : newStrength += moveValue;
-		int value = getBestMove(state, depth + 1, maxDepth, endTime, newStrength, move);
+		int value = getBestMove(state, depth + 1, maxDepth, endTime, newStrength, newHash, move);
 		state.undoMove(moves->at(i));
 
 		if (value == TIMEOUT)
@@ -168,6 +221,20 @@ int Agent::getBestMove(ChineseCheckersState& state, unsigned depth, unsigned max
 	}
 
 	move = bestMoves->at(rand() % bestMoves->size());
+
+	if (depth < 5)
+	{
+		memset(entry.board, 0, 6 * sizeof(unsigned int));
+		for (int i = 0; i < 81; ++i)
+		{
+			entry.board[i / 16] |= state.board[i] << ((i % 16) * 2);
+		}
+
+		entry.currentPlayer = state.currentPlayer;
+		entry.turn = currentTurn;
+		entry.value = total;
+		transpositionTable[hash % TTSIZE] = entry;
+	}
 
 	if (debugging)
 	{
@@ -275,6 +342,20 @@ int Agent::getBestMoveDebug(ChineseCheckersState& state, unsigned depth, unsigne
 	}
 
 	return total;
+}
+
+unsigned int Agent::hash(ChineseCheckersState& state)
+{
+	unsigned int hash = 0;
+	for (int i = 0; i < 81; ++i)
+	{
+		if (state.board[i] != 0)
+		{
+			hash ^= zobristNumbers[i * state.board[i]];
+		}
+	}
+
+	return hash;
 }
 
 // Evaluates the strength of the state's position for the state's current player
