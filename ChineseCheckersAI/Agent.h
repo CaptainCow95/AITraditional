@@ -10,9 +10,9 @@
 
 struct TTEntry
 {
-	uint8_t currentPlayer;
 	int value;
-	int turn;
+	uint16_t turn;
+	uint8_t currentPlayer;
 };
 
 class Agent {

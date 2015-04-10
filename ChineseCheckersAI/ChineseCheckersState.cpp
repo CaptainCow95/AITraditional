@@ -52,12 +52,6 @@ bool ChineseCheckersState::applyMove(Move m) {
 	if (m.from > 80 || m.to > 80 || m.from == m.to)
 		return false;
 
-	// Don't check the move anymore for the speed increase.
-	/*
-	if (!isValidMove(m))
-	return false;
-	*/
-
 	// Apply the move
 	std::swap(board[m.from], board[m.to]);
 
@@ -74,19 +68,9 @@ bool ChineseCheckersState::undoMove(Move m) {
 
 	// Undo the move
 	std::swap(board[m.from], board[m.to]);
-	swapTurn();
 
-	// Don't check the move anymore for the speed increase.
-	/*
-	// Check the move is valid from this state that is back one step
-	if (!isValidMove(m)) {
-	// Woops, it was not valid, undo our changes
+	// Update whose turn it is
 	swapTurn();
-	std::swap(board[m.from], board[m.to]);
-
-	return false;
-	}
-	*/
 
 	return true;
 }
