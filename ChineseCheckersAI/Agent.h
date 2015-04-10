@@ -14,6 +14,7 @@ public:
 	~Agent();
 	void playGame();
 	void setName(std::string newName);
+	void setDepth(int depth);
 
 private:
 	Move nextMove();
@@ -27,20 +28,19 @@ private:
 	bool isValidMoveMessage(const std::vector<std::string> &tokens) const;
 
 	int getBestMove(ChineseCheckersState& state, unsigned depth, unsigned maxDepth, std::chrono::system_clock::time_point& endTime, int positionStrength, Move& move); // move is an out parameter
+	int getBestMoveDebug(ChineseCheckersState& state, unsigned depth, unsigned maxDepth, int positionStrength, std::vector<Move>& movesList); // move is an out paramter
 	int evaluatePosition(ChineseCheckersState& state);
 	int calculateDistanceToHome(ChineseCheckersState& state, unsigned piece, unsigned player);
 
 	const int TIMEOUT = INT_MAX - 1;
-#ifdef DEBUG
-	const int SECONDS_PER_TURN = 10000;
-#else
 	const int SECONDS_PER_TURN = 10;
-#endif
 	ChineseCheckersState state;
 	enum Players { player1, player2 };
 	Players current_player;
 	Players my_player;
 	std::string name;
+	unsigned int maxDepth;
+	bool debugging = false;
 	std::string opp_name;
 	unsigned operations;
 	std::vector<std::vector<Move>*>* moveVectorCache;

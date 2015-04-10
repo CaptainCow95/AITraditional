@@ -9,6 +9,11 @@ int main(int argc, char **argv) {
 		a.setName(argv[1]);
 	}
 
+	if (argc > 2)
+	{
+		a.setDepth(atoi(argv[2]));
+	}
+
 	a.playGame();
 
 	return EXIT_SUCCESS;

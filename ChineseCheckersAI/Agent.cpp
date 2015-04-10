@@ -39,11 +39,26 @@ Move Agent::nextMove() {
 	unsigned maxDepth = 1;
 	operations = 0;
 
-	int moveValue = getBestMove(state, 0, maxDepth, startTime + std::chrono::milliseconds(SECONDS_PER_TURN * 1000 - 500), evaluatePosition(state), move);
+	std::chrono::system_clock::time_point endTime;
+	if (debugging)
+	{
+		endTime = startTime + std::chrono::hours(5);
+	}
+	else
+	{
+		endTime = startTime + std::chrono::milliseconds(SECONDS_PER_TURN * 1000 - 500);
+	}
+
+	int moveValue = getBestMove(state, 0, maxDepth, endTime, evaluatePosition(state), move);
 
 	// Keep trying to go deeper and deeper in the search for the best move until we run out of time
 	while (moveValue != TIMEOUT && moveValue != INT_MAX)
 	{
+		if (debugging && maxDepth > this->maxDepth)
+		{
+			break;
+		}
+
 		// Store the best move and try to go deeper the next time
 		bestMove = move;
 		++maxDepth;
@@ -55,11 +70,10 @@ Move Agent::nextMove() {
 			bestMoveVectorCache->push_back(new std::vector<Move>());
 		}
 
-		moveValue = getBestMove(state, 0, maxDepth, startTime + std::chrono::milliseconds(SECONDS_PER_TURN * 1000 - 500), evaluatePosition(state), move);
+		moveValue = getBestMove(state, 0, maxDepth, endTime, evaluatePosition(state), move);
 	}
 
 	std::cerr << "Reached depth of " << (maxDepth - 1) << std::endl;
-	std::cerr << "Processed " << (operations / SECONDS_PER_TURN) << " operations per second" << std::endl;
 
 	return bestMove;
 }
@@ -154,6 +168,112 @@ int Agent::getBestMove(ChineseCheckersState& state, unsigned depth, unsigned max
 	}
 
 	move = bestMoves->at(rand() % bestMoves->size());
+
+	if (debugging)
+	{
+		std::vector<Move> validMoves;
+		getBestMoveDebug(state, depth, maxDepth, positionStrength, validMoves);
+
+		if (bestMoves->size() != validMoves.size())
+		{
+			std::cerr << "Move vectors do not match in size!" << std::endl;
+		}
+
+		for (Move m : validMoves)
+		{
+			if (std::find(bestMoves->begin(), bestMoves->end(), m) == bestMoves->end())
+			{
+				std::cerr << "A valid best move was not found in the best moves vector" << std::endl;
+			}
+		}
+	}
+
+	return total;
+}
+
+int Agent::getBestMoveDebug(ChineseCheckersState& state, unsigned depth, unsigned maxDepth, int positionStrength, std::vector<Move>& movesList)
+{
+	if (depth >= maxDepth)
+	{
+		// We are at the max depth, return the current node's value
+		return positionStrength;
+	}
+
+	if (state.gameOver())
+	{
+		if (state.winner() == my_player + 1)
+		{
+			// The player won, so return the max value
+			return INT_MAX;
+		}
+		else
+		{
+			// The player lost, so return the min value
+			return INT_MIN;
+		}
+	}
+
+	std::vector<Move>* moves = moveVectorCache->at(depth);
+	state.getMoves(*moves);
+
+	std::vector<Move>* bestMoves = bestMoveVectorCache->at(depth);
+
+	// This will be set on the first iteration
+	int total;
+
+	for (unsigned i = 0; i < moves->size(); ++i)
+	{
+		// Undo where the move is coming from
+		int newStrength = positionStrength;
+		int player = state.currentPlayer;
+		int moveValue = calculateDistanceToHome(state, moves->at(i).from, player);
+		(player == my_player + 1) ? newStrength += moveValue : newStrength -= moveValue;
+
+		state.applyMove(moves->at(i));
+
+		// Redo where the move is going to
+		moveValue = calculateDistanceToHome(state, moves->at(i).to, player);
+		(player == my_player + 1) ? newStrength -= moveValue : newStrength += moveValue;
+		std::vector<Move> newMoves;
+		int value = getBestMoveDebug(state, depth + 1, maxDepth, newStrength, newMoves);
+		state.undoMove(moves->at(i));
+
+		if (i == 0)
+		{
+			total = value;
+			bestMoves->clear();
+		}
+
+		if (state.currentPlayer == my_player + 1)
+		{
+			// Take the max as this is our move
+			if (value > total)
+			{
+				total = value;
+				bestMoves->clear();
+			}
+		}
+		else
+		{
+			// Take the min as this is our opponents move
+			if (value < total)
+			{
+				total = value;
+				bestMoves->clear();
+			}
+		}
+
+		if (value == total)
+		{
+			bestMoves->push_back(moves->at(i));
+		}
+	}
+
+	for (Move m : *bestMoves)
+	{
+		movesList.push_back(m);
+	}
+
 	return total;
 }
 
@@ -269,6 +389,12 @@ void Agent::playGame() {
 void Agent::setName(std::string newName)
 {
 	name = newName;
+}
+
+void Agent::setDepth(int depth)
+{
+	maxDepth = depth;
+	debugging = true;
 }
 
 // Sends a msg to stdout and verifies that the next message to come in is it
