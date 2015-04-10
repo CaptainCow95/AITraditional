@@ -10,8 +10,7 @@
 
 struct TTEntry
 {
-	unsigned int board[6];
-	int currentPlayer;
+	uint8_t currentPlayer;
 	int value;
 	int turn;
 };
@@ -35,15 +34,15 @@ private:
 	bool isValidStartGameMessage(const std::vector<std::string> &tokens) const;
 	bool isValidMoveMessage(const std::vector<std::string> &tokens) const;
 
-	int getBestMove(ChineseCheckersState& state, unsigned depth, unsigned maxDepth, std::chrono::system_clock::time_point& endTime, int positionStrength, unsigned int hash, Move& move); // move is an out parameter
+	int getBestMove(ChineseCheckersState& state, unsigned depth, unsigned maxDepth, std::chrono::system_clock::time_point& endTime, int positionStrength, uint64_t hash, Move& move); // move is an out parameter
 	int getBestMoveDebug(ChineseCheckersState& state, unsigned depth, unsigned maxDepth, int positionStrength, std::vector<Move>& movesList); // move is an out paramter
 	int evaluatePosition(ChineseCheckersState& state);
 	int calculateDistanceToHome(ChineseCheckersState& state, unsigned piece, unsigned player);
-	unsigned int hash(ChineseCheckersState& state);
+	uint64_t hash(ChineseCheckersState& state);
 
 	const int TIMEOUT = INT_MAX - 1;
 	const int SECONDS_PER_TURN = 10;
-	const int TTSIZE = 20000000;
+	const int TTSIZE = 100000000;
 	ChineseCheckersState state;
 	enum Players { player1, player2 };
 	Players current_player;
@@ -57,8 +56,7 @@ private:
 	std::vector<std::vector<Move>*>* bestMoveVectorCache;
 	TTEntry* transpositionTable;
 	int currentTurn;
-	int hashCollisions;
-	std::array<int, 162> zobristNumbers;
+	std::array<uint64_t, 162> zobristNumbers;
 	int  skipped;
 };
 
