@@ -178,10 +178,11 @@ void ChineseCheckersState::getMovesSingleStep(std::vector<Move> &moves, unsigned
 }
 
 void ChineseCheckersState::getMovesJump(std::vector<Move> &moves, unsigned from) const {
-	getMovesJumpRecursive(moves, from, from);
+	std::array<bool, 81> seen{};
+	getMovesJumpRecursive(moves, seen, from, from);
 }
 
-bool ChineseCheckersState::checkJumpMove(std::vector<Move> &moves, Move move, unsigned last) const {
+bool ChineseCheckersState::checkJumpMove(std::vector<Move> &moves, std::array<bool, 81>& seen, Move move, unsigned last) const {
 	int row = move.to / 9;
 	int col = move.to % 9;
 
@@ -191,7 +192,7 @@ bool ChineseCheckersState::checkJumpMove(std::vector<Move> &moves, Move move, un
 	}
 
 	int jumpIndex = last + ((int)move.to - (int)last) / 2;
-	if (board[move.to] == 0 && board[jumpIndex] != 0 && std::find(moves.begin(), moves.end(), move) == moves.end())
+	if (!seen[move.to] && board[move.to] == 0 && board[jumpIndex] != 0)
 	{
 		return true;
 	}
@@ -199,56 +200,57 @@ bool ChineseCheckersState::checkJumpMove(std::vector<Move> &moves, Move move, un
 	return false;
 }
 
-void ChineseCheckersState::getMovesJumpRecursive(std::vector<Move> &moves, unsigned from, unsigned at) const {
+void ChineseCheckersState::getMovesJumpRecursive(std::vector<Move> &moves, std::array<bool, 81>& seen, unsigned from, unsigned at) const {
 	unsigned row = at / 9;
 	unsigned col = at % 9;
+	seen[at] = true;
 
 	// Up Left
 	Move move = { from, at - 2 };
-	if (col > 1 && checkJumpMove(moves, move, at))
+	if (col > 1 && checkJumpMove(moves, seen, move, at))
 	{
 		moves.push_back(move);
-		getMovesJumpRecursive(moves, from, move.to);
+		getMovesJumpRecursive(moves, seen, from, move.to);
 	}
 
 	// Up Right
 	move = { from, at - 18 };
-	if (row > 1 && checkJumpMove(moves, move, at))
+	if (row > 1 && checkJumpMove(moves, seen, move, at))
 	{
 		moves.push_back(move);
-		getMovesJumpRecursive(moves, from, move.to);
+		getMovesJumpRecursive(moves, seen, from, move.to);
 	}
 
 	// Left
 	move = { from, at + 16 };
-	if (col > 1 && checkJumpMove(moves, move, at))
+	if (col > 1 && checkJumpMove(moves, seen, move, at))
 	{
 		moves.push_back(move);
-		getMovesJumpRecursive(moves, from, move.to);
+		getMovesJumpRecursive(moves, seen, from, move.to);
 	}
 
 	// Right
 	move = { from, at - 16 };
-	if (col < 7 && checkJumpMove(moves, move, at))
+	if (col < 7 && checkJumpMove(moves, seen, move, at))
 	{
 		moves.push_back(move);
-		getMovesJumpRecursive(moves, from, move.to);
+		getMovesJumpRecursive(moves, seen, from, move.to);
 	}
 
 	// Down Left
 	move = { from, at + 18 };
-	if (row < 7 && checkJumpMove(moves, move, at))
+	if (row < 7 && checkJumpMove(moves, seen, move, at))
 	{
 		moves.push_back(move);
-		getMovesJumpRecursive(moves, from, move.to);
+		getMovesJumpRecursive(moves, seen, from, move.to);
 	}
 
 	// Down Right
 	move = { from, at + 2 };
-	if (col < 7 && checkJumpMove(moves, move, at))
+	if (col < 7 && checkJumpMove(moves, seen, move, at))
 	{
 		moves.push_back(move);
-		getMovesJumpRecursive(moves, from, move.to);
+		getMovesJumpRecursive(moves, seen, from, move.to);
 	}
 }
 
