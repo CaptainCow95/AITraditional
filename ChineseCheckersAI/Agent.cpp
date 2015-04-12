@@ -210,7 +210,7 @@ int Agent::getBestMove(ChineseCheckersState& state, unsigned depth, unsigned max
 	newEntry.value = total;
 	transpositionTable[hash % TTSIZE] = newEntry;
 
-	if (debugging)
+	if (debugging && depth == 0)
 	{
 		std::vector<Move> validMoves;
 		getBestMoveDebug(state, depth, maxDepth, positionStrength, validMoves);
