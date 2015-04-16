@@ -44,8 +44,10 @@ private:
 	int getBestMoveDebug(ChineseCheckersState& state, unsigned depth, unsigned maxDepth, std::vector<Move>& movesList); // move is an out paramter
 	int evaluatePosition(ChineseCheckersState& state);
 	int evaluatePositionDebug(ChineseCheckersState& state);
-	int calculateDistanceToHome(ChineseCheckersState& state, unsigned piece, unsigned player);
+	static int calculateDistanceToHome(unsigned piece, unsigned player);
 	uint64_t hash(ChineseCheckersState& state);
+	static bool MoveSortP1(Move a, Move b);
+	static bool MoveSortP2(Move a, Move b);
 
 	const int TIMEOUT = INT_MAX - 1;
 	const int SECONDS_PER_TURN = 10;

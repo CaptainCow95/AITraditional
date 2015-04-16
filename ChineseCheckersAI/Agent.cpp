@@ -163,6 +163,15 @@ int Agent::getBestMove(ChineseCheckersState& state, unsigned depth, unsigned max
 	std::vector<Move>* moves = moveVectorCache->at(depth);
 	state.getMoves(*moves);
 
+	if (state.currentPlayer == 1)
+	{
+		std::sort(moves->begin(), moves->end(), MoveSortP1);
+	}
+	else
+	{
+		std::sort(moves->begin(), moves->end(), MoveSortP2);
+	}
+
 	std::vector<Move>* bestMoves = bestMoveVectorCache->at(depth);
 	bestMoves->clear();
 	int bestValue = LOSE;
@@ -230,14 +239,6 @@ int Agent::getBestMove(ChineseCheckersState& state, unsigned depth, unsigned max
 	{
 		std::vector<Move> debugMoves;
 		int debugValue = getBestMoveDebug(state, depth, maxDepth, debugMoves);
-
-		for (Move m : debugMoves)
-		{
-			if (std::find(bestMoves->begin(), bestMoves->end(), m) == bestMoves->end())
-			{
-				//std::cerr << "Move not found!" << std::endl;
-			}
-		}
 
 		for (Move m : *bestMoves)
 		{
@@ -355,7 +356,7 @@ int Agent::evaluatePosition(ChineseCheckersState& state)
 		if (state.board[i] != 0)
 		{
 			int player = state.board[i];
-			int distance = calculateDistanceToHome(state, i, player);
+			int distance = calculateDistanceToHome(i, player);
 			if (player == state.currentPlayer)
 			{
 				total -= distance;
@@ -378,7 +379,7 @@ int Agent::evaluatePositionDebug(ChineseCheckersState& state)
 		if (state.board[i] != 0)
 		{
 			int player = state.board[i];
-			int distance = calculateDistanceToHome(state, i, player);
+			int distance = calculateDistanceToHome(i, player);
 			if (player == my_player + 1)
 			{
 				total -= distance;
@@ -393,7 +394,7 @@ int Agent::evaluatePositionDebug(ChineseCheckersState& state)
 	return total;
 }
 
-int Agent::calculateDistanceToHome(ChineseCheckersState& state, unsigned piece, unsigned player)
+int Agent::calculateDistanceToHome(unsigned piece, unsigned player)
 {
 	int row = piece / 9;
 	int col = piece % 9;
@@ -408,6 +409,20 @@ int Agent::calculateDistanceToHome(ChineseCheckersState& state, unsigned piece, 
 		// if the row + col is 3 or less, then the piece is in the home position
 		return std::max((row + col) - 3, 0);
 	}
+}
+
+bool Agent::MoveSortP1(Move a, Move b)
+{
+	int distanceA = calculateDistanceToHome(a.from, 1) - calculateDistanceToHome(a.to, 1);
+	int distanceB = calculateDistanceToHome(b.from, 1) - calculateDistanceToHome(b.to, 1);
+	return distanceB < distanceA;
+}
+
+bool Agent::MoveSortP2(Move a, Move b)
+{
+	int distanceA = calculateDistanceToHome(a.from, 2) - calculateDistanceToHome(a.to, 2);
+	int distanceB = calculateDistanceToHome(b.from, 2) - calculateDistanceToHome(b.to, 2);
+	return distanceB < distanceA;
 }
 
 void Agent::playGame() {
