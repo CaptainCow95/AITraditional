@@ -66,11 +66,9 @@ Move Agent::nextMove() {
 	Move move;
 	unsigned maxDepth = 1;
 	operations = 0;
-	skipped = 0;
-	alphaBetaSkipped = 0;
 
 	std::chrono::system_clock::time_point endTime;
-	if (debugging)
+	if (fixedDepth > 0)
 	{
 		endTime = startTime + std::chrono::hours(5);
 	}
@@ -79,14 +77,14 @@ Move Agent::nextMove() {
 		endTime = startTime + std::chrono::milliseconds(SECONDS_PER_TURN * 1000 - 500);
 	}
 
-	int moveValue = getBestMove(state, 0, maxDepth, endTime, evaluatePosition(state), hash(state), INT_MIN, INT_MAX, move);
+	int moveValue = getBestMove(state, 0, maxDepth, endTime, evaluatePosition(state), hash(state), LOSE, WIN, move);
 
 	// Keep trying to go deeper and deeper in the search for the best move until we run out of time
-	while (moveValue != TIMEOUT && moveValue != INT_MAX)
+	while (moveValue != TIMEOUT && moveValue != WIN)
 	{
 		bestMove = move;
 
-		if (debugging && maxDepth >= this->maxDepth)
+		if (fixedDepth > 0 && maxDepth >= fixedDepth)
 		{
 			break;
 		}
@@ -104,26 +102,24 @@ Move Agent::nextMove() {
 			bestMoveVectorCacheDebug->push_back(new std::vector<Move>());
 		}
 
-		moveValue = getBestMove(state, 0, maxDepth, endTime, evaluatePosition(state), hash(state), INT_MIN, INT_MAX, move);
+		moveValue = getBestMove(state, 0, maxDepth, endTime, evaluatePosition(state), hash(state), LOSE, WIN, move);
 	}
 
 	std::cerr << "Reached depth of " << maxDepth << std::endl;
-	std::cerr << "Skipped: " << skipped << std::endl;
-	std::cerr << "Alpha Beta Skipped: " << alphaBetaSkipped << std::endl;
 
 	return bestMove;
 }
 
 int Agent::getBestMove(ChineseCheckersState& state, unsigned depth, unsigned maxDepth, std::chrono::system_clock::time_point& endTime, int positionStrength, uint64_t hash, int alpha, int beta, Move& move) // move is an out parameter
 {
-	++operations;
+	// Whether we are ourselves or our opponents
+	int playerMult = (state.currentPlayer == (my_player + 1)) ? 1 : -1;
 	int alphaOriginal = alpha;
-	int betaOriginal = beta;
 
 	if (depth >= maxDepth)
 	{
 		// We are at the max depth, return the current node's value
-		return positionStrength;
+		return playerMult * positionStrength;
 	}
 
 	if (std::chrono::system_clock::now() >= endTime)
@@ -134,42 +130,36 @@ int Agent::getBestMove(ChineseCheckersState& state, unsigned depth, unsigned max
 
 	if (state.gameOver())
 	{
-		if (state.winner() == my_player + 1)
+		// TODO: I feel like this can only be one of these, figure this out
+		if (state.winner() == state.currentPlayer)
 		{
-			// The player won, so return the max value
-			return INT_MAX;
+			return WIN;
 		}
 		else
 		{
-			// The player lost, so return the min value
-			return INT_MIN;
+			return LOSE;
 		}
 	}
 
-	if (depth < 5)
+	TTEntry entry = transpositionTable[hash % TTSIZE];
+	if (entry.turn == currentTurn && entry.currentPlayer == state.currentPlayer)
 	{
-		TTEntry entry = transpositionTable[hash % TTSIZE];
-		if (entry.turn == currentTurn && entry.currentPlayer == state.currentPlayer)
+		if (entry.flag == EXACT)
 		{
-			// found the entry in the table
-			if (entry.flag == EXACT)
-			{
-				++skipped;
-				return entry.value;
-			}
-			else if (entry.flag == ALPHA)
-			{
-				alpha = std::max(alpha, entry.value);
-			}
-			else if (entry.flag == BETA)
-			{
-				beta = std::min(beta, entry.value);
-			}
+			return entry.value;
+		}
+		else if (entry.flag == LOWERBOUND)
+		{
+			alpha = std::max(alpha, entry.value);
+		}
+		else if (entry.flag == UPPERBOUND)
+		{
+			beta = std::min(beta, entry.value);
+		}
 
-			if (alpha >= beta)
-			{
-				return entry.value;
-			}
+		if (alpha >= beta)
+		{
+			//return entry.value;
 		}
 	}
 
@@ -177,27 +167,23 @@ int Agent::getBestMove(ChineseCheckersState& state, unsigned depth, unsigned max
 	state.getMoves(*moves);
 
 	std::vector<Move>* bestMoves = bestMoveVectorCache->at(depth);
-
-	// This will be set on the first iteration
-	int total;
+	bestMoves->clear();
+	int bestValue = LOSE;
 
 	for (unsigned i = 0; i < moves->size(); ++i)
 	{
-		// Undo where the move is coming from
 		int newStrength = positionStrength;
-		int player = state.currentPlayer;
-		int moveValue = calculateDistanceToHome(state, moves->at(i).from, player);
-		(player == my_player + 1) ? newStrength += moveValue : newStrength -= moveValue;
+		newStrength += calculateDistanceToHome(state, moves->at(i).from, state.currentPlayer);
+		newStrength -= calculateDistanceToHome(state, moves->at(i).to, state.currentPlayer);
+
+		uint64_t newHash = hash;
+		newHash ^= zobristNumbers[moves->at(i).from + 81 * (state.currentPlayer - 1)];
+		newHash ^= zobristNumbers[moves->at(i).to + 81 * (state.currentPlayer - 1)];
 
 		state.applyMove(moves->at(i));
-		uint64_t newHash = hash;
-		newHash ^= zobristNumbers[moves->at(i).from + 81 * (player - 1)];
-		newHash ^= zobristNumbers[moves->at(i).to + 81 * (player - 1)];
 
-		// Redo where the move is going to
-		moveValue = calculateDistanceToHome(state, moves->at(i).to, player);
-		(player == my_player + 1) ? newStrength -= moveValue : newStrength += moveValue;
-		int value = getBestMove(state, depth + 1, maxDepth, endTime, newStrength, newHash, alpha, beta, move);
+		int value = getBestMove(state, depth + 1, maxDepth, endTime, newStrength, newHash, -beta, -alpha, move);
+
 		state.undoMove(moves->at(i));
 
 		if (value == TIMEOUT)
@@ -205,111 +191,49 @@ int Agent::getBestMove(ChineseCheckersState& state, unsigned depth, unsigned max
 			return TIMEOUT;
 		}
 
-		if (i == 0)
+		// Negate for negamax
+		value = -value;
+
+		if (value > bestValue)
 		{
-			total = value;
+			bestValue = value;
 			bestMoves->clear();
 		}
 
-		if (state.currentPlayer == my_player + 1)
-		{
-			// Take the max as this is our move
-			if (value > total)
-			{
-				total = value;
-				bestMoves->clear();
-			}
-
-			alpha = std::max(alpha, value);
-		}
-		else
-		{
-			// Take the min as this is our opponents move
-			if (value < total)
-			{
-				total = value;
-				bestMoves->clear();
-			}
-
-			beta = std::min(beta, value);
-		}
-
-		if (value == total)
+		if (value == bestValue)
 		{
 			bestMoves->push_back(moves->at(i));
 		}
 
-		if (beta <= alpha)
+		alpha = std::max(alpha, value);
+
+		if (alpha >= beta)
 		{
-			++alphaBetaSkipped;
-			break;
+			//break;
 		}
 	}
-
-	move = bestMoves->at(rand() % bestMoves->size());
 
 	TTEntry newEntry;
 	newEntry.currentPlayer = state.currentPlayer;
 	newEntry.turn = currentTurn;
-
-	if (state.currentPlayer == my_player + 1)
+	newEntry.value = bestValue;
+	if (bestValue <= alphaOriginal)
 	{
-		if (total <= alphaOriginal)
-		{
-			newEntry.flag = BETA;
-		}
-		else if (total >= beta)
-		{
-			newEntry.flag = ALPHA;
-		}
-		else
-		{
-			newEntry.flag = EXACT;
-		}
+		newEntry.flag = UPPERBOUND;
+	}
+	else if (bestValue >= beta)
+	{
+		newEntry.flag = LOWERBOUND;
 	}
 	else
 	{
-		if (total >= betaOriginal)
-		{
-			newEntry.flag = BETA;
-		}
-		else if (total <= alpha)
-		{
-			newEntry.flag = ALPHA;
-		}
-		else
-		{
-			newEntry.flag = EXACT;
-		}
+		newEntry.flag = EXACT;
 	}
 
-	newEntry.value = total;
 	transpositionTable[hash % TTSIZE] = newEntry;
+	move = bestMoves->at(rand() % bestMoves->size());
 
-	if (debugging && depth == 0)
-	{
-		std::vector<Move> validMoves;
-		getBestMoveDebug(state, depth, maxDepth, positionStrength, validMoves);
-
-		if (std::find(validMoves.begin(), validMoves.end(), move) == validMoves.end())
-		{
-			std::cerr << "Best move not chosen" << std::endl;
-		}
-		/*if (bestMoves->size() != validMoves.size())
-		{
-		std::cerr << "Move vectors do not match in size!" << std::endl;
-		}
-
-		for (Move m : validMoves)
-		{
-		if (std::find(bestMoves->begin(), bestMoves->end(), m) == bestMoves->end())
-		{
-		std::cerr << "A valid best move was not found in the best moves vector" << std::endl;
-		}
-		}*/
-	}
-
-	return total;
+	return bestValue;
 }
 
 int Agent::getBestMoveDebug(ChineseCheckersState& state, unsigned depth, unsigned maxDepth, int positionStrength, std::vector<Move>& movesList)
@@ -528,7 +452,7 @@ void Agent::setName(std::string newName)
 
 void Agent::setDepth(int depth)
 {
-	maxDepth = depth;
+	fixedDepth = depth;
 }
 
 void Agent::setDebug()

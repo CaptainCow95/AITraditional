@@ -9,8 +9,8 @@
 #include "ChineseCheckersState.h"
 
 #define EXACT 0
-#define ALPHA 1
-#define BETA 2
+#define LOWERBOUND 1
+#define UPPERBOUND 2
 
 struct TTEntry
 {
@@ -49,12 +49,14 @@ private:
 	const int TIMEOUT = INT_MAX - 1;
 	const int SECONDS_PER_TURN = 10;
 	const int TTSIZE = 100000000;
+	const int WIN = INT_MAX;
+	const int LOSE = INT_MIN + 1;
 	ChineseCheckersState state;
 	enum Players { player1, player2 };
 	Players current_player;
 	Players my_player;
 	std::string name;
-	unsigned int maxDepth;
+	unsigned int fixedDepth = 0;
 	bool debugging = false;
 	std::string opp_name;
 	unsigned operations;
@@ -65,8 +67,6 @@ private:
 	TTEntry* transpositionTable;
 	int currentTurn;
 	std::array<uint64_t, 162> zobristNumbers;
-	int skipped;
-	int alphaBetaSkipped;
 };
 
 #endif
