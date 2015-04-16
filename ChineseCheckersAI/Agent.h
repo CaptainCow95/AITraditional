@@ -40,9 +40,10 @@ private:
 	bool isValidStartGameMessage(const std::vector<std::string> &tokens) const;
 	bool isValidMoveMessage(const std::vector<std::string> &tokens) const;
 
-	int getBestMove(ChineseCheckersState& state, unsigned depth, unsigned maxDepth, std::chrono::system_clock::time_point& endTime, int positionStrength, uint64_t hash, int alpha, int beta, Move& move); // move is an out parameter
-	int getBestMoveDebug(ChineseCheckersState& state, unsigned depth, unsigned maxDepth, int positionStrength, std::vector<Move>& movesList); // move is an out paramter
+	int getBestMove(ChineseCheckersState& state, unsigned depth, unsigned maxDepth, std::chrono::system_clock::time_point& endTime, uint64_t hash, int alpha, int beta, Move& move); // move is an out parameter
+	int getBestMoveDebug(ChineseCheckersState& state, unsigned depth, unsigned maxDepth, std::vector<Move>& movesList); // move is an out paramter
 	int evaluatePosition(ChineseCheckersState& state);
+	int evaluatePositionDebug(ChineseCheckersState& state);
 	int calculateDistanceToHome(ChineseCheckersState& state, unsigned piece, unsigned player);
 	uint64_t hash(ChineseCheckersState& state);
 
