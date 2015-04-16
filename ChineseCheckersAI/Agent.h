@@ -27,6 +27,7 @@ public:
 	void playGame();
 	void setName(std::string newName);
 	void setDepth(int depth);
+	void setDebug();
 
 private:
 	Move nextMove();

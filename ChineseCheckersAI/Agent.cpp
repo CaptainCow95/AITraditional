@@ -529,6 +529,10 @@ void Agent::setName(std::string newName)
 void Agent::setDepth(int depth)
 {
 	maxDepth = depth;
+}
+
+void Agent::setDebug()
+{
 	debugging = true;
 }
 
