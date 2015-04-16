@@ -77,7 +77,8 @@ Move Agent::nextMove() {
 		endTime = startTime + std::chrono::milliseconds(SECONDS_PER_TURN * 1000 - 500);
 	}
 
-	int moveValue = getBestMove(state, 0, maxDepth, endTime, hash(state), LOSE, WIN, move);
+	bool cutoff;
+	int moveValue = getBestMove(state, 0, maxDepth, endTime, hash(state), LOSE, WIN, cutoff, move);
 
 	// Keep trying to go deeper and deeper in the search for the best move until we run out of time
 	while (moveValue != TIMEOUT && moveValue != WIN)
@@ -102,7 +103,7 @@ Move Agent::nextMove() {
 			bestMoveVectorCacheDebug->push_back(new std::vector<Move>());
 		}
 
-		moveValue = getBestMove(state, 0, maxDepth, endTime, hash(state), LOSE, WIN, move);
+		moveValue = getBestMove(state, 0, maxDepth, endTime, hash(state), LOSE, WIN, cutoff, move);
 	}
 
 	std::cerr << "Reached depth of " << maxDepth << std::endl;
@@ -110,9 +111,10 @@ Move Agent::nextMove() {
 	return bestMove;
 }
 
-int Agent::getBestMove(ChineseCheckersState& state, unsigned depth, unsigned maxDepth, std::chrono::system_clock::time_point& endTime, uint64_t hash, int alpha, int beta, Move& move) // move is an out parameter
+int Agent::getBestMove(ChineseCheckersState& state, unsigned depth, unsigned maxDepth, std::chrono::system_clock::time_point& endTime, uint64_t hash, int alpha, int beta, bool& cutoff, Move& move) // cutoff and move are out parameters
 {
 	int alphaOriginal = alpha;
+	cutoff = false;
 
 	if (depth >= maxDepth)
 	{
@@ -143,20 +145,21 @@ int Agent::getBestMove(ChineseCheckersState& state, unsigned depth, unsigned max
 	{
 		if (entry.flag == EXACT)
 		{
-			//return entry.value;
+			return entry.value;
 		}
 		else if (entry.flag == LOWERBOUND)
 		{
-			//alpha = std::max(alpha, entry.value);
+			alpha = std::max(alpha, entry.value);
 		}
 		else if (entry.flag == UPPERBOUND)
 		{
-			//beta = std::min(beta, entry.value);
+			beta = std::min(beta, entry.value);
 		}
 
 		if (alpha >= beta)
 		{
-			//return entry.value;
+			cutoff = true;
+			return entry.value;
 		}
 	}
 
@@ -184,7 +187,8 @@ int Agent::getBestMove(ChineseCheckersState& state, unsigned depth, unsigned max
 
 		state.applyMove(moves->at(i));
 
-		int value = getBestMove(state, depth + 1, maxDepth, endTime, newHash, -beta, -alpha, move);
+		bool childCutoff;
+		int value = getBestMove(state, depth + 1, maxDepth, endTime, newHash, -beta, -alpha, childCutoff, move);
 
 		state.undoMove(moves->at(i));
 
@@ -193,25 +197,29 @@ int Agent::getBestMove(ChineseCheckersState& state, unsigned depth, unsigned max
 			return TIMEOUT;
 		}
 
-		// Negate for negamax
-		value = -value;
-
-		if (value > bestValue)
+		if (!childCutoff)
 		{
-			bestValue = value;
-			bestMoves->clear();
-		}
+			// Negate for negamax
+			value = -value;
 
-		if (value == bestValue)
-		{
-			bestMoves->push_back(moves->at(i));
-		}
+			if (value > bestValue)
+			{
+				bestValue = value;
+				bestMoves->clear();
+			}
 
-		alpha = std::max(alpha, value);
+			if (value == bestValue)
+			{
+				bestMoves->push_back(moves->at(i));
+			}
 
-		if (alpha >= beta)
-		{
-			break;
+			alpha = std::max(alpha, value);
+
+			if (alpha >= beta)
+			{
+				cutoff = true;
+				break;
+			}
 		}
 	}
 
@@ -233,13 +241,17 @@ int Agent::getBestMove(ChineseCheckersState& state, unsigned depth, unsigned max
 	}
 
 	transpositionTable[hash % TTSIZE] = newEntry;
-	move = bestMoves->at(rand() % bestMoves->size());
+	if (bestMoves->size() > 0)
+	{
+		move = bestMoves->at(rand() % bestMoves->size());
+	}
 
 	if (debugging && alpha < beta)
 	{
 		std::vector<Move> debugMoves;
 		int debugValue = getBestMoveDebug(state, depth, maxDepth, debugMoves);
 
+		// Only check for our moves not being among the best moves found by the debug version since because of alpha-beta, we may not find every best node.
 		for (Move m : *bestMoves)
 		{
 			if (std::find(debugMoves.begin(), debugMoves.end(), m) == debugMoves.end())
