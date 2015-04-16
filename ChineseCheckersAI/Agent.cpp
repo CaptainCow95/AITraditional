@@ -425,16 +425,36 @@ int Agent::calculateDistanceToHome(unsigned piece, unsigned player)
 
 bool Agent::MoveSortP1(Move a, Move b)
 {
-	int distanceA = calculateDistanceToHome(a.from, 1) - calculateDistanceToHome(a.to, 1);
-	int distanceB = calculateDistanceToHome(b.from, 1) - calculateDistanceToHome(b.to, 1);
-	return distanceB < distanceA;
+	int fromARow = a.from / 9;
+	int fromACol = a.from % 9;
+	int toARow = a.to / 9;
+	int toACol = a.to % 9;
+	int distanceA = (fromARow + fromACol) - (toARow + toACol);
+
+	int fromBRow = b.from / 9;
+	int fromBCol = b.from % 9;
+	int toBRow = b.to / 9;
+	int toBCol = b.to % 9;
+	int distanceB = (fromBRow + fromBCol) - (toBRow + toBCol);
+
+	return distanceA < distanceB;
 }
 
 bool Agent::MoveSortP2(Move a, Move b)
 {
-	int distanceA = calculateDistanceToHome(a.from, 2) - calculateDistanceToHome(a.to, 2);
-	int distanceB = calculateDistanceToHome(b.from, 2) - calculateDistanceToHome(b.to, 2);
-	return distanceB < distanceA;
+	int fromARow = a.from / 9;
+	int fromACol = a.from % 9;
+	int toARow = a.to / 9;
+	int toACol = a.to % 9;
+	int distanceA = (toARow + toACol) - (fromARow + fromACol);
+
+	int fromBRow = b.from / 9;
+	int fromBCol = b.from % 9;
+	int toBRow = b.to / 9;
+	int toBCol = b.to % 9;
+	int distanceB = (toBRow + toBCol) - (fromBRow + fromBCol);
+
+	return distanceA < distanceB;
 }
 
 void Agent::playGame() {
