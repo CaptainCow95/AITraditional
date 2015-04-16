@@ -119,7 +119,8 @@ int Agent::getBestMove(ChineseCheckersState& state, unsigned depth, unsigned max
 	if (depth >= maxDepth)
 	{
 		// We are at the max depth, return the current node's value
-		return playerMult * positionStrength;
+		//return playerMult * positionStrength;
+		return positionStrength;
 	}
 
 	if (std::chrono::system_clock::now() >= endTime)
@@ -182,7 +183,7 @@ int Agent::getBestMove(ChineseCheckersState& state, unsigned depth, unsigned max
 
 		state.applyMove(moves->at(i));
 
-		int value = getBestMove(state, depth + 1, maxDepth, endTime, newStrength, newHash, -beta, -alpha, move);
+		int value = getBestMove(state, depth + 1, maxDepth, endTime, -newStrength, newHash, -beta, -alpha, move);
 
 		state.undoMove(moves->at(i));
 
@@ -232,6 +233,28 @@ int Agent::getBestMove(ChineseCheckersState& state, unsigned depth, unsigned max
 
 	transpositionTable[hash % TTSIZE] = newEntry;
 	move = bestMoves->at(rand() % bestMoves->size());
+
+	if (debugging)
+	{
+		std::vector<Move> debugMoves;
+		int debugValue = getBestMoveDebug(state, depth, maxDepth, positionStrength, debugMoves);
+
+		for (Move m : debugMoves)
+		{
+			if (std::find(bestMoves->begin(), bestMoves->end(), m) == bestMoves->end())
+			{
+				std::cerr << "Move not found!" << std::endl;
+			}
+		}
+
+		for (Move m : *bestMoves)
+		{
+			if (std::find(debugMoves.begin(), debugMoves.end(), m) == debugMoves.end())
+			{
+				std::cerr << "Extra move found!" << std::endl;
+			}
+		}
+	}
 
 	return bestValue;
 }
