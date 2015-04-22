@@ -5,6 +5,7 @@
 #include <chrono>
 #include <string>
 #include <vector>
+#include "ThreadPool.h"
 
 #include "ChineseCheckersState.h"
 
@@ -70,6 +71,7 @@ private:
 	TTEntry* transpositionTable;
 	int currentTurn;
 	std::array<uint64_t, 162> zobristNumbers;
+	ThreadPool* threadPool;
 };
 
 #endif

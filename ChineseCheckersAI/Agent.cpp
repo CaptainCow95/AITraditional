@@ -26,6 +26,8 @@ Agent::Agent() : name("Agent_NJ")
 		x |= (uint64_t)(rand() & 0xFF) << 56;
 		zobristNumbers[i] = x;
 	}
+
+	threadPool = new ThreadPool();
 }
 
 Agent::~Agent()
@@ -42,6 +44,8 @@ Agent::~Agent()
 	delete bestMoveVectorCache;
 	delete moveVectorCacheDebug;
 	delete bestMoveVectorCacheDebug;
+
+	delete threadPool;
 }
 
 Move Agent::nextMove() {

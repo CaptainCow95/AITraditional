@@ -68,10 +68,12 @@
     <ClCompile Include="Agent.cpp" />
     <ClCompile Include="ChineseCheckersState.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="ThreadPool.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Agent.h" />
     <ClInclude Include="ChineseCheckersState.h" />
+    <ClInclude Include="ThreadPool.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
