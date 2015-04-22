@@ -197,7 +197,7 @@ int Agent::getBestMove(ChineseCheckersState& state, unsigned depth, unsigned max
 			return TIMEOUT;
 		}
 
-		if (!childCutoff)
+		if (!childCutoff || (depth == 0 && bestMoves->size() == 0))
 		{
 			// Negate for negamax
 			value = -value;
