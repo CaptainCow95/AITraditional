@@ -60,6 +60,43 @@ Move Agent::nextMove() {
 
 	++currentTurn;
 
+	if (my_player == 0){
+		if (currentTurn == 1)
+		{
+			return{ 3, 12 };
+		}
+		else if (currentTurn == 2)
+		{
+			return{ 1, 21 };
+		}
+		else if (currentTurn == 3)
+		{
+			return{ 2, 22 };
+		}
+		else if (currentTurn == 4)
+		{
+			return{ 22, 31 };
+		}
+	}
+	else{
+		if (currentTurn == 1)
+		{
+			return{ 77, 68 };
+		}
+		else if (currentTurn == 2)
+		{
+			return{ 79, 59 };
+		}
+		else if (currentTurn == 3)
+		{
+			return{ 78, 58 };
+		}
+		else if (currentTurn == 4)
+		{
+			return{ 58, 49 };
+		}
+	}
+
 	std::chrono::system_clock::time_point startTime = std::chrono::system_clock::now();
 
 	Move bestMove;
@@ -178,6 +215,7 @@ int Agent::getBestMove(ChineseCheckersState& state, unsigned depth, unsigned max
 	std::vector<Move>* bestMoves = bestMoveVectorCache->at(depth);
 	bestMoves->clear();
 	int bestValue = LOSE;
+	bool first = true;
 
 	for (unsigned i = 0; i < moves->size(); ++i)
 	{
@@ -188,7 +226,19 @@ int Agent::getBestMove(ChineseCheckersState& state, unsigned depth, unsigned max
 		state.applyMove(moves->at(i));
 
 		bool childCutoff;
-		int value = getBestMove(state, depth + 1, maxDepth, endTime, newHash, -beta, -alpha, childCutoff, move);
+		int value;
+		if (!first)
+		{
+			value = getBestMove(state, depth + 1, maxDepth, endTime, newHash, -alpha - 1, -alpha, childCutoff, move);
+			if (value > alpha && value < beta)
+			{
+				value = getBestMove(state, depth + 1, maxDepth, endTime, newHash, -beta, -value, childCutoff, move);
+			}
+		}
+		else
+		{
+			value = getBestMove(state, depth + 1, maxDepth, endTime, newHash, -beta, -alpha, childCutoff, move);
+		}
 
 		state.undoMove(moves->at(i));
 
@@ -197,7 +247,7 @@ int Agent::getBestMove(ChineseCheckersState& state, unsigned depth, unsigned max
 			return TIMEOUT;
 		}
 
-		if (!childCutoff || (depth == 0 && bestMoves->size() == 0))
+		if ((first || !childCutoff) || (depth == 0 && bestMoves->size() == 0))
 		{
 			// Negate for negamax
 			value = -value;
@@ -221,6 +271,8 @@ int Agent::getBestMove(ChineseCheckersState& state, unsigned depth, unsigned max
 				break;
 			}
 		}
+
+		first = false;
 	}
 
 	TTEntry newEntry;
