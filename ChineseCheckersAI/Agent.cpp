@@ -10,12 +10,10 @@
 
 Agent::Agent() : name("Agent_NJ")
 {
-    moves = new Tree<MoveEntry>();
 }
 
 Agent::~Agent()
 {
-    delete moves;
 }
 
 Move Agent::nextMove()
@@ -26,17 +24,230 @@ Move Agent::nextMove()
 
     std::vector<Move> stateMoves;
     state.getMoves(stateMoves);
+
+    std::vector<MoveEntry> moves;
+    moves.reserve(stateMoves.size());
     for (auto m : stateMoves)
     {
-        moves->getRoot().addChild({ 0, 0.0f, m });
+        if (maxDepth > 0)
+        {
+            moves.push_back({ 1, playRandomDepth(m), m });
+        }
+        else
+        {
+            moves.push_back({ 1, playRandom(m), m });
+        }
+
+        ++totalSamples;
     }
 
-    return runMonteCarlo();
+    while (std::chrono::system_clock::now() < endTime)
+    {
+        float highestValue = calculateUCBValue(moves[0]);
+        MoveEntry move = moves[0];
+        for (size_t i = 1; i < moves.size(); ++i)
+        {
+            float value = calculateUCBValue(moves[i]);
+            if (value > highestValue)
+            {
+                move = moves[i];
+            }
+        }
+
+        int payout;
+        if (maxDepth > 0)
+        {
+            payout = playRandomDepth(move.move);
+        }
+        else
+        {
+            payout = playRandom(move.move);
+        }
+
+        move.payout += payout;
+        move.samples++;
+        ++totalSamples;
+    }
+
+    MoveEntry best = moves[0];
+    for (size_t i = 1; i < moves.size(); ++i)
+    {
+        if (moves[i].payout / moves[i].samples > best.payout / best.samples)
+        {
+            best = moves[i];
+        }
+    }
+
+    std::cerr << "Processed " << totalSamples << " samples." << std::endl;
+
+    return best.move;
 }
 
-Move Agent::runMonteCarlo()
+float Agent::calculateUCBValue(MoveEntry me)
 {
-    return moves->getRoot()[0].move;
+    return (me.payout / me.samples) + (float)sqrt((2 * log(totalSamples)) / me.samples);
+}
+
+int Agent::playRandom(Move m)
+{
+    ChineseCheckersState randomState;
+    randomState.currentPlayer = state.currentPlayer;
+    for (size_t i = 0; i < state.board.size(); ++i)
+    {
+        randomState.board[i] = state.board[i];
+    }
+
+    randomState.applyMove(m);
+
+    while (!randomState.gameOver())
+    {
+        std::vector<Move> moves;
+        randomState.getMoves(moves);
+        if (rand() % 10 == 0)
+        {
+            // Play random
+            randomState.applyMove(moves[rand() % moves.size()]);
+        }
+        else
+        {
+            // Play best
+            Move best = moves[0];
+            int bestDistance = calculateMoveDistance(best, randomState.currentPlayer);
+
+            for (size_t i = 1; i < moves.size(); ++i)
+            {
+                int distance = calculateMoveDistance(moves[i], randomState.currentPlayer);
+                if (distance > bestDistance)
+                {
+                    best = moves[i];
+                    bestDistance = distance;
+                }
+            }
+
+            randomState.applyMove(best);
+        }
+    }
+
+    if (randomState.winner() - 1 == current_player)
+    {
+        return 1;
+    }
+
+    return 0;
+}
+
+int Agent::playRandomDepth(Move m)
+{
+    ChineseCheckersState randomState;
+    randomState.currentPlayer = state.currentPlayer;
+    for (size_t i = 0; i < state.board.size(); ++i)
+    {
+        randomState.board[i] = state.board[i];
+    }
+
+    randomState.applyMove(m);
+
+    int depth = 0;
+    while (!randomState.gameOver() && depth < maxDepth)
+    {
+        ++depth;
+        std::vector<Move> moves;
+        randomState.getMoves(moves);
+        if (rand() % 10 == 0)
+        {
+            // Play random
+            randomState.applyMove(moves[rand() % moves.size()]);
+        }
+        else
+        {
+            // Play best
+            Move best = moves[0];
+            int bestDistance = calculateMoveDistance(best, randomState.currentPlayer);
+
+            for (size_t i = 1; i < moves.size(); ++i)
+            {
+                int distance = calculateMoveDistance(moves[i], randomState.currentPlayer);
+                if (distance > bestDistance)
+                {
+                    best = moves[i];
+                    bestDistance = distance;
+                }
+            }
+
+            randomState.applyMove(best);
+        }
+    }
+
+    if (randomState.gameOver())
+    {
+        if (randomState.winner() - 1 == current_player)
+        {
+            return INT_MAX;
+        }
+        else
+        {
+            return INT_MIN;
+        }
+    }
+
+    return evaluatePosition(randomState);
+}
+
+int Agent::calculateMoveDistance(Move m, int player)
+{
+    int fromRow = m.from / 9;
+    int fromCol = m.from % 9;
+    int toRow = m.to / 9;
+    int toCol = m.to % 9;
+
+    if (player == 1)
+    {
+        return (toRow + toCol) - (fromRow + fromCol);
+    }
+    else
+    {
+        return (fromRow + fromCol) - (toRow + toCol);
+    }
+}
+
+int Agent::evaluatePosition(ChineseCheckersState& state)
+{
+    int total = 0;
+    for (int i = 0; i < 81; ++i)
+    {
+        if (state.board[i] != 0)
+        {
+            int player = state.board[i];
+            int distance = calculateDistanceToHome(i, player);
+            if (player == my_player + 1)
+            {
+                total -= distance;
+            }
+            else
+            {
+                total += distance;
+            }
+        }
+    }
+
+    return total;
+}
+
+int Agent::calculateDistanceToHome(unsigned piece, unsigned player)
+{
+    int row = piece / 9;
+    int col = piece % 9;
+
+    if (player == 1)
+    {
+        // if the row + col is at least 13, then the piece is in the home position
+        return std::max(13 - (row + col), 0);
+    }
+    else
+    {
+        // if the row + col is 3 or less, then the piece is in the home position
+        return std::max((row + col) - 3, 0);
+    }
 }
 
 void Agent::playGame() {
@@ -110,6 +321,11 @@ void Agent::playGame() {
 void Agent::setName(std::string newName)
 {
     name = newName;
+}
+
+void Agent::setDepth(int depth)
+{
+    maxDepth = depth;
 }
 
 // Sends a msg to stdout and verifies that the next message to come in is it

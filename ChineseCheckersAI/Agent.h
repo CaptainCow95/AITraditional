@@ -12,7 +12,7 @@
 struct MoveEntry
 {
     int samples;
-    float average;
+    int64_t payout;
     Move move;
 };
 
@@ -22,10 +22,16 @@ public:
     ~Agent();
     void playGame();
     void setName(std::string newName);
+    void setDepth(int depth);
 
 private:
     Move nextMove();
-    Move runMonteCarlo();
+    float calculateUCBValue(MoveEntry me);
+    int calculateMoveDistance(Move m, int player);
+    int playRandom(Move m);
+    int playRandomDepth(Move m);
+    int evaluatePosition(ChineseCheckersState& state);
+    int calculateDistanceToHome(unsigned piece, unsigned player);
     void printAndRecvEcho(const std::string &msg) const;
     std::string readMsg() const;
     std::vector<std::string> tokenizeMsg(const std::string &msg) const;
@@ -46,7 +52,7 @@ private:
     std::string name;
     std::string opp_name;
     int totalSamples;
-    Tree<MoveEntry>* moves;
+    int maxDepth = -1;
 };
 
 #endif

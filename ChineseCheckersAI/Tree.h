@@ -1,4 +1,6 @@
 #pragma once
+
+#include <stack>
 #include <vector>
 #include <memory>
 
@@ -24,15 +26,19 @@ public:
     {
     public:
         TreeNode() : children(new std::vector<std::unique_ptr<TreeNode>>()), root(true) { }
-        TreeNode(T value) : children(new std::vector<std::unique_ptr<TreeNode>>()), value(value), root(false) { }
+        TreeNode(T value, TreeNode* parent) : children(new std::vector<std::unique_ptr<TreeNode>>()), value(value), root(false), parent(parent) { }
         ~TreeNode() { delete children; }
 
-        void addChild(T child) { children->push_back(make_unique<TreeNode>(child)); }
+        void addChild(T child) { children->push_back(make_unique<TreeNode>(child, this)); }
         size_t size() { return children->size(); }
-        T& operator[] (const int index) { return (*children)[index]->value; }
+        TreeNode& operator[] (const int index) { return *(*children)[index]; }
+        TreeNode& getParent() { return *parent; }
+        T& getValue() { return value; }
+        bool isRoot() { return root; }
 
     private:
         std::vector<std::unique_ptr<TreeNode>>* children;
+        TreeNode* parent;
         T value;
         bool root;
     };
@@ -43,23 +49,64 @@ public:
     public:
         typedef typename A::difference_type difference_type;
         typedef typename A::value_type value_type;
-        typedef typename A::reference reference;
-        typedef typename A::pointer pointer;
+        typedef typename std::allocator<TreeNode>::reference reference;
+        typedef typename std::allocator<TreeNode>::pointer pointer;
         typedef std::forward_iterator_tag iterator_category;
 
-        leafiterator(Tree<T, A>& tree, bool begin = true);
+        leafiterator(Tree<T, A>& tree, bool begin = true) : tree(tree), currentNode(*tree.root)
+        {
+            if (!begin)
+            {
+                return;
+            }
 
-        bool operator==(const leafiterator& other) const { return tree == other.tree; }
+            while (currentNode.size() > 0)
+            {
+                currentNode = currentNode[0];
+                indexInParent.push(0);
+            }
+        }
+
+        bool operator==(const leafiterator& other) const { return &tree == &other.tree; }
         bool operator!=(const leafiterator& other) const { return !(*this == other); }
 
-        leafiterator& operator++();
+        leafiterator& operator++()
+        {
+            currentNode = currentNode.getParent();
+            size_t index = indexInParent.top();
+            indexInParent.pop();
+            ++index;
+            while (index >= currentNode.size())
+            {
+                if (currentNode.isRoot())
+                {
+                    currentNode = *tree.root;
+                    return *this;
+                }
+
+                currentNode = currentNode.getParent();
+                index = indexInParent.top();
+                indexInParent.pop();
+                ++index;
+            }
+
+            currentNode = currentNode[index];
+            while (currentNode.size() != 0)
+            {
+                currentNode = currentNode[0];
+                indexInParent.push(0);
+            }
+
+            return *this;
+        }
 
         reference operator*() const { return currentNode; }
-        pointer operator->() const { return currentNode; }
+        pointer operator->() const { return &currentNode; }
 
     private:
         Tree<T, A>& tree;
-        TreeNode* currentNode;
+        TreeNode& currentNode;
+        std::stack<int> indexInParent;
     };
 
     Tree() { root = new TreeNode(); }
