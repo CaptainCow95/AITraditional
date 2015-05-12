@@ -10,6 +10,7 @@
 
 Agent::Agent() : name("Agent_NJ")
 {
+    _tree = new Tree<MoveEntry>();
 }
 
 Agent::~Agent()
@@ -24,6 +25,13 @@ Move Agent::nextMove()
 
     std::vector<Move> stateMoves;
     state.getMoves(stateMoves);
+
+    for (auto& m : stateMoves)
+    {
+        _tree->getRoot().addChild({ 1, playRandomDepth(m), m });
+    }
+
+    runMonteCarlo(endTime);
 
     std::vector<MoveEntry> moves;
     moves.reserve(stateMoves.size());
@@ -81,6 +89,47 @@ Move Agent::nextMove()
     std::cerr << "Processed " << totalSamples << " samples." << std::endl;
 
     return best.move;
+}
+
+void Agent::runMonteCarlo(std::chrono::system_clock::time_point endTime)
+{
+    while (std::chrono::system_clock::now() < endTime)
+    {
+        runSampling(_tree->getRoot());
+    }
+}
+
+void Agent::runSampling(Tree<MoveEntry>::TreeNode& node)
+{
+    if (node.size() > 0)
+    {
+        // We have children
+        float highestValue = calculateUCBValue(node[0].getValue());
+        int bestMove = 0;
+        for (size_t i = 1; i < node.size(); ++i)
+        {
+            float value = calculateUCBValue(node[i].getValue());
+            if (value > highestValue)
+            {
+                highestValue = value;
+                bestMove = i;
+            }
+        }
+
+        runSampling(node[bestMove]);
+    }
+    else
+    {
+        // We have no children
+        if (node.getValue().samples > 5)
+        {
+            // Expand the node
+        }
+        else
+        {
+            // Simulate the node
+        }
+    }
 }
 
 float Agent::calculateUCBValue(MoveEntry me)

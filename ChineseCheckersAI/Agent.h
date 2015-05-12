@@ -26,6 +26,8 @@ public:
 
 private:
     Move nextMove();
+    void runMonteCarlo(std::chrono::system_clock::time_point endTime);
+    void runSampling(Tree<MoveEntry>::TreeNode& node);
     float calculateUCBValue(MoveEntry me);
     int calculateMoveDistance(Move m, int player);
     int playRandom(Move m);
@@ -53,6 +55,7 @@ private:
     std::string opp_name;
     int totalSamples;
     int maxDepth = -1;
+    Tree<MoveEntry>* _tree;
 };
 
 #endif

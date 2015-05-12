@@ -68,7 +68,6 @@
     <ClCompile Include="Agent.cpp" />
     <ClCompile Include="ChineseCheckersState.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="Tree.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Agent.h" />
