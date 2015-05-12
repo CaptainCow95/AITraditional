@@ -25,11 +25,24 @@ public:
     class TreeNode
     {
     public:
-        TreeNode() : children(new std::vector<std::unique_ptr<TreeNode>>()), root(true) { }
-        TreeNode(T value, TreeNode* parent) : children(new std::vector<std::unique_ptr<TreeNode>>()), value(value), root(false), parent(parent) { }
+        TreeNode()
+        {
+            children = new std::vector<TreeNode*>();
+            children->reserve(10);
+            this->parent = nullptr;
+            root = true;
+        }
+        TreeNode(T value, TreeNode* parent) : children(nullptr), parent(nullptr)
+        {
+            children = new std::vector<TreeNode*>();
+            children->reserve(10);
+            this->parent = parent;
+            this->value = value;
+            root = false;
+        }
         ~TreeNode() { delete children; }
 
-        void addChild(T child) { children->push_back(make_unique<TreeNode>(child, this)); }
+        void addChild(T child) { children->push_back(new TreeNode(child, this)); }
         size_t size() { return children->size(); }
         TreeNode& operator[] (const int index) { return *(*children)[index]; }
         TreeNode& getParent() { return *parent; }
@@ -37,7 +50,7 @@ public:
         bool isRoot() { return root; }
 
     private:
-        std::vector<std::unique_ptr<TreeNode>>* children;
+        std::vector<TreeNode*>* children;
         TreeNode* parent;
         T value;
         bool root;

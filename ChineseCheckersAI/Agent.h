@@ -28,10 +28,11 @@ private:
     Move nextMove();
     void runMonteCarlo(std::chrono::system_clock::time_point endTime);
     void runSampling(Tree<MoveEntry>::TreeNode& node);
+    void getStateCopy(Tree<MoveEntry>::TreeNode& node, ChineseCheckersState& stateCopy);
+    void simulate(ChineseCheckersState& state, Tree<MoveEntry>::TreeNode& node);
     float calculateUCBValue(MoveEntry me);
     int calculateMoveDistance(Move m, int player);
-    int playRandom(Move m);
-    int playRandomDepth(Move m);
+    int playRandomDepth(ChineseCheckersState& state, Move m);
     int evaluatePosition(ChineseCheckersState& state);
     int calculateDistanceToHome(unsigned piece, unsigned player);
     void printAndRecvEcho(const std::string &msg) const;
@@ -44,7 +45,7 @@ private:
     bool isValidMoveMessage(const std::vector<std::string> &tokens) const;
 
     const int TIMEOUT = INT_MAX - 1;
-    const int SECONDS_PER_TURN = 10;
+    const int SECONDS_PER_TURN = 1000;
     const int WIN = INT_MAX;
     const int LOSE = INT_MIN + 1;
     ChineseCheckersState state;
@@ -54,7 +55,7 @@ private:
     std::string name;
     std::string opp_name;
     int totalSamples;
-    int maxDepth = -1;
+    int maxDepth = 20;
     Tree<MoveEntry>* _tree;
 };
 

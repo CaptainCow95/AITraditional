@@ -1,11 +1,9 @@
 #include "Agent.h"
 
-#include <cstdlib>
 #include <iostream>
 #include <iterator>
 #include <sstream>
 #include <string>
-#include <time.h>
 #include <vector>
 
 Agent::Agent() : name("Agent_NJ")
@@ -28,67 +26,28 @@ Move Agent::nextMove()
 
     for (auto& m : stateMoves)
     {
-        _tree->getRoot().addChild({ 1, playRandomDepth(m), m });
+        ChineseCheckersState stateCopy;
+        getStateCopy(_tree->getRoot(), stateCopy);
+        _tree->getRoot().addChild({ 1, playRandomDepth(stateCopy, m), m });
+        ++totalSamples;
     }
 
     runMonteCarlo(endTime);
 
-    std::vector<MoveEntry> moves;
-    moves.reserve(stateMoves.size());
-    for (auto m : stateMoves)
+    int64_t highestValue = _tree->getRoot()[0].getValue().payout / _tree->getRoot()[0].getValue().samples;
+    int highestIndex = 0;
+    for (size_t i = 1; i < _tree->getRoot().size(); ++i)
     {
-        if (maxDepth > 0)
+        int64_t value = _tree->getRoot()[i].getValue().payout / _tree->getRoot()[i].getValue().samples;
+        std::cerr << _tree->getRoot()[i].getValue().move << " " << _tree->getRoot()[i].getValue().samples << " samples; avg: " << value << std::endl;
+        if (value > highestValue)
         {
-            moves.push_back({ 1, playRandomDepth(m), m });
-        }
-        else
-        {
-            moves.push_back({ 1, playRandom(m), m });
-        }
-
-        ++totalSamples;
-    }
-
-    while (std::chrono::system_clock::now() < endTime)
-    {
-        float highestValue = calculateUCBValue(moves[0]);
-        MoveEntry move = moves[0];
-        for (size_t i = 1; i < moves.size(); ++i)
-        {
-            float value = calculateUCBValue(moves[i]);
-            if (value > highestValue)
-            {
-                move = moves[i];
-            }
-        }
-
-        int payout;
-        if (maxDepth > 0)
-        {
-            payout = playRandomDepth(move.move);
-        }
-        else
-        {
-            payout = playRandom(move.move);
-        }
-
-        move.payout += payout;
-        move.samples++;
-        ++totalSamples;
-    }
-
-    MoveEntry best = moves[0];
-    for (size_t i = 1; i < moves.size(); ++i)
-    {
-        if (moves[i].payout / moves[i].samples > best.payout / best.samples)
-        {
-            best = moves[i];
+            highestValue = value;
+            highestIndex = i;
         }
     }
 
-    std::cerr << "Processed " << totalSamples << " samples." << std::endl;
-
-    return best.move;
+    return _tree->getRoot().getValue().move;
 }
 
 void Agent::runMonteCarlo(std::chrono::system_clock::time_point endTime)
@@ -124,11 +83,64 @@ void Agent::runSampling(Tree<MoveEntry>::TreeNode& node)
         if (node.getValue().samples > 5)
         {
             // Expand the node
+            ChineseCheckersState stateCopy;
+            getStateCopy(node, stateCopy);
+            std::vector<Move> moves;
+            stateCopy.getMoves(moves);
+            for (auto& m : moves)
+            {
+                node.addChild({ 0, 0, m });
+                auto childNode = node[node.size() - 1];
+                getStateCopy(childNode, stateCopy);
+                simulate(stateCopy, childNode);
+            }
         }
         else
         {
             // Simulate the node
+            ChineseCheckersState stateCopy;
+            getStateCopy(node, stateCopy);
+            simulate(stateCopy, node);
         }
+    }
+}
+
+void Agent::getStateCopy(Tree<MoveEntry>::TreeNode& node, ChineseCheckersState& stateCopy)
+{
+    stateCopy.currentPlayer = state.currentPlayer;
+    for (size_t i = 0; i < state.board.size(); ++i)
+    {
+        stateCopy.board[i] = state.board[i];
+    }
+
+    std::stack<Move> moveStack;
+    Tree<MoveEntry>::TreeNode parentNode = node;
+    while (!parentNode.isRoot())
+    {
+        moveStack.push(parentNode.getValue().move);
+        parentNode = parentNode.getParent();
+    }
+
+    while (!moveStack.empty())
+    {
+        stateCopy.applyMove(moveStack.top());
+        moveStack.pop();
+    }
+}
+
+void Agent::simulate(ChineseCheckersState& state, Tree<MoveEntry>::TreeNode& node)
+{
+    int payout = playRandomDepth(state, node.getValue().move);
+    node.getValue().payout += payout;
+    node.getValue().samples += 1;
+    ++totalSamples;
+
+    auto parent = node.getParent();
+    while (!parent.isRoot())
+    {
+        parent.getValue().payout += payout;
+        parent.getValue().samples += 1;
+        parent = parent.getParent();
     }
 }
 
@@ -137,85 +149,28 @@ float Agent::calculateUCBValue(MoveEntry me)
     return (me.payout / me.samples) + (float)sqrt((2 * log(totalSamples)) / me.samples);
 }
 
-int Agent::playRandom(Move m)
+int Agent::playRandomDepth(ChineseCheckersState& state, Move m)
 {
-    ChineseCheckersState randomState;
-    randomState.currentPlayer = state.currentPlayer;
-    for (size_t i = 0; i < state.board.size(); ++i)
-    {
-        randomState.board[i] = state.board[i];
-    }
-
-    randomState.applyMove(m);
-
-    while (!randomState.gameOver())
-    {
-        std::vector<Move> moves;
-        randomState.getMoves(moves);
-        if (rand() % 10 == 0)
-        {
-            // Play random
-            randomState.applyMove(moves[rand() % moves.size()]);
-        }
-        else
-        {
-            // Play best
-            Move best = moves[0];
-            int bestDistance = calculateMoveDistance(best, randomState.currentPlayer);
-
-            for (size_t i = 1; i < moves.size(); ++i)
-            {
-                int distance = calculateMoveDistance(moves[i], randomState.currentPlayer);
-                if (distance > bestDistance)
-                {
-                    best = moves[i];
-                    bestDistance = distance;
-                }
-            }
-
-            randomState.applyMove(best);
-        }
-    }
-
-    if (randomState.winner() - 1 == current_player)
-    {
-        return 1;
-    }
-
-    return 0;
-}
-
-int Agent::playRandomDepth(Move m)
-{
-    ChineseCheckersState randomState;
-    randomState.currentPlayer = state.currentPlayer;
-    for (size_t i = 0; i < state.board.size(); ++i)
-    {
-        randomState.board[i] = state.board[i];
-    }
-
-    randomState.applyMove(m);
-
     int depth = 0;
-    while (!randomState.gameOver() && depth < maxDepth)
+    while (!state.gameOver() && depth < maxDepth)
     {
         ++depth;
         std::vector<Move> moves;
-        randomState.getMoves(moves);
+        state.getMoves(moves);
         if (rand() % 10 == 0)
         {
             // Play random
-            randomState.applyMove(moves[rand() % moves.size()]);
+            state.applyMove(moves[rand() % moves.size()]);
         }
         else
         {
             // Play best
             Move best = moves[0];
-            int bestDistance = calculateMoveDistance(best, randomState.currentPlayer);
+            int bestDistance = calculateMoveDistance(best, state.currentPlayer);
 
             for (size_t i = 1; i < moves.size(); ++i)
             {
-                int distance = calculateMoveDistance(moves[i], randomState.currentPlayer);
+                int distance = calculateMoveDistance(moves[i], state.currentPlayer);
                 if (distance > bestDistance)
                 {
                     best = moves[i];
@@ -223,13 +178,13 @@ int Agent::playRandomDepth(Move m)
                 }
             }
 
-            randomState.applyMove(best);
+            state.applyMove(best);
         }
     }
 
-    if (randomState.gameOver())
+    if (state.gameOver())
     {
-        if (randomState.winner() - 1 == current_player)
+        if (state.winner() - 1 == current_player)
         {
             return INT_MAX;
         }
@@ -239,7 +194,7 @@ int Agent::playRandomDepth(Move m)
         }
     }
 
-    return evaluatePosition(randomState);
+    return evaluatePosition(state);
 }
 
 int Agent::calculateMoveDistance(Move m, int player)
