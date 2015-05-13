@@ -57,7 +57,7 @@ private:
     int deepestDepth;
     int maxDepth = 5;
     ChineseCheckersState state;
-    std::atomic<uint64_t> totalSamples;
+    std::atomic<uint32_t> totalSamples;
     bool verbose = false;
     MoveTree* tree;
     std::chrono::system_clock::time_point endTime;

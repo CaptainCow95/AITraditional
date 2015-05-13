@@ -53,7 +53,25 @@ int Agent::calculateMoveDistance(Move m, int player)
 
 float Agent::calculateUCBValue(int samples, int64_t payout)
 {
-    return payout / (float)samples + 10 * (float)sqrt(log((int)totalSamples) / (float)samples);
+    // Calculate an approximation of the natural log since it is a lot faster.
+    // Bit twiddling log base 2 taken from https://graphics.stanford.edu/~seander/bithacks.html#IntegerLogIEEE64Float
+    union { unsigned int u[2]; double d; } t; // temp
+    t.u[0] = totalSamples;
+    t.u[1] = 0x43300000;
+    t.d -= 4503599627370496.0;
+    // Multiply by the constant at the end to get from log base 2 to ln
+    // Constant taken from http://www.flipcode.com/archives/Fast_log_Function.shtml
+    float logResult = ((t.u[1] >> 20) - 0x3FF) * 0.69314718f;
+
+    // Calculate the sqrt root using some floating point and integer bit twiddling
+    // Bit twiddling sqrt taken from https://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Approximations_that_depend_on_the_floating_point_representation
+    float sqrtInputTemp = logResult / (float)samples;
+    int sqrtTemp = *(int*)&sqrtInputTemp;
+    sqrtTemp = (1 << 29) + (sqrtTemp >> 1) - (1 << 22) + -0x4C000;
+    float sqrtResult = *(float*)&sqrtTemp;
+
+    float fast = payout / (float)samples + 10 * sqrtResult;
+    return fast;
 }
 
 int Agent::evaluatePosition(ChineseCheckersState& state)

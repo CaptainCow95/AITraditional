@@ -41,7 +41,7 @@ public:
         void enterLock() { lock.lock(); }
         void exitLock() { lock.unlock(); }
 
-        std::atomic<int> samples;
+        std::atomic<int32_t> samples;
         std::atomic<int64_t> payout;
         std::atomic<bool> addingChildren;
 
