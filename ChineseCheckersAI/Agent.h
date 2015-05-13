@@ -38,7 +38,7 @@ private:
     int playRandomDepth(ChineseCheckersState& state);
     void printAndRecvEcho(const std::string& msg) const;
     std::string readMsg() const;
-    void runMonteCarlo(Tree<MoveEntry>* tree, std::chrono::system_clock::time_point endTime);
+    void runMonteCarlo(void*);
     void simulate(ChineseCheckersState& state, Tree<MoveEntry>::TreeNode& node);
     void switchCurrentPlayer();
     std::vector<std::string> tokenizeMsg(const std::string& msg) const;
@@ -59,13 +59,15 @@ private:
     std::string name;
     std::string opp_name;
 
-	ThreadPool* threadPool;
+    ThreadPool* threadPool;
     int deepestDepth;
     int maxDepth = 5;
     int secondsPerTurn = 10;
     ChineseCheckersState state;
     int totalSamples;
     bool verbose = false;
+    Tree<MoveEntry>* tree;
+    std::chrono::system_clock::time_point endTime;
 };
 
 #endif

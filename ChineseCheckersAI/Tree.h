@@ -35,12 +35,15 @@ public:
         TreeNode* getParent() { return parent; }
         T& getValue() { return value; }
         bool isRoot() { return root; }
+        void enterLock() { lock.lock(); }
+        void exitLock() { lock.unlock(); }
 
     private:
         std::vector<TreeNode*> children;
         TreeNode* parent;
         T value;
         bool root;
+        std::mutex lock;
     };
 
     class leafiterator

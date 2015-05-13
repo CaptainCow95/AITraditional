@@ -8,12 +8,12 @@
 
 Agent::Agent() : name("Agent_NJ")
 {
-	threadPool = new ThreadPool();
+    threadPool = new ThreadPool();
 }
 
 Agent::~Agent()
 {
-	delete threadPool;
+    delete threadPool;
 }
 
 int Agent::calculateDistanceToHome(unsigned piece, unsigned player)
@@ -115,10 +115,10 @@ bool Agent::isValidStartGameMessage(const std::vector<std::string>& tokens) cons
 Move Agent::nextMove()
 {
     std::chrono::system_clock::time_point startTime = std::chrono::system_clock::now();
-    std::chrono::system_clock::time_point endTime = startTime + std::chrono::milliseconds(secondsPerTurn * 1000 - 500);
+    endTime = startTime + std::chrono::milliseconds(secondsPerTurn * 1000 - 500);
     totalSamples = 0;
     deepestDepth = 0;
-    Tree<MoveEntry>* tree = new Tree<MoveEntry>();
+    tree = new Tree<MoveEntry>();
 
     std::vector<Move> stateMoves;
     state.getMoves(stateMoves);
@@ -131,7 +131,17 @@ Move Agent::nextMove()
         ++totalSamples;
     }
 
-    runMonteCarlo(tree, endTime);
+    int numThreads = threadPool->getNumThreads();
+    std::function<void(void*)> runMonteCarloFunction = bind(&Agent::runMonteCarlo, this, std::placeholders::_1);
+    for (int i = 0; i < numThreads; ++i)
+    {
+        threadPool->queueJob(runMonteCarloFunction, nullptr);
+    }
+
+    while (threadPool->getQueuedJobs() > 0)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
 
     MoveEntry entry = (*tree->getRoot())[0].getValue();
     int64_t highestValue = entry.payout / entry.samples;
@@ -158,11 +168,7 @@ Move Agent::nextMove()
         }
     }
 
-    if (verbose)
-    {
-        std::cerr << "Deepest depth: " << deepestDepth << std::endl;
-    }
-
+    std::cerr << "Deepest depth: " << deepestDepth << std::endl;
     std::cerr << "Total simulations: " << totalSamples << std::endl;
 
     Move retMove = (*tree->getRoot())[highestIndex].getValue().move;
@@ -321,11 +327,12 @@ std::string Agent::readMsg() const
     return msg;
 }
 
-void Agent::runMonteCarlo(Tree<MoveEntry>* tree, std::chrono::system_clock::time_point endTime)
+void Agent::runMonteCarlo(void*)
 {
     while (std::chrono::system_clock::now() < endTime)
     {
         Tree<MoveEntry>::TreeNode* node = tree->getRoot();
+        node->enterLock();
         int depth = 0;
         while (node->size() > 0)
         {
@@ -343,7 +350,9 @@ void Agent::runMonteCarlo(Tree<MoveEntry>* tree, std::chrono::system_clock::time
             }
 
             ++depth;
+            node->exitLock();
             node = &(*node)[bestMove];
+            node->enterLock();
         }
 
         // We have no children
@@ -369,6 +378,8 @@ void Agent::runMonteCarlo(Tree<MoveEntry>* tree, std::chrono::system_clock::time
             getStateCopy(*node, stateCopy);
             simulate(stateCopy, *node);
         }
+
+        node->exitLock();
 
         deepestDepth = std::max(deepestDepth, depth);
     }
