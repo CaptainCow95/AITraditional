@@ -3,7 +3,6 @@
 #define AGENT_H_INCLUDED
 
 #include <chrono>
-#include <string>
 #include <vector>
 
 #include "ChineseCheckersState.h"
@@ -16,47 +15,56 @@ struct MoveEntry
     Move move;
 };
 
-class Agent {
+class Agent
+{
 public:
     Agent();
     ~Agent();
     void playGame();
-    void setName(std::string newName);
     void setDepth(int depth);
+    void setName(std::string newName);
+    void setProfile();
+    void setVerbose();
 
 private:
-    Move nextMove();
-    void runMonteCarlo(std::chrono::system_clock::time_point endTime);
-    void runSampling(Tree<MoveEntry>::TreeNode& node);
-    void getStateCopy(Tree<MoveEntry>::TreeNode& node, ChineseCheckersState& stateCopy);
-    void simulate(ChineseCheckersState& state, Tree<MoveEntry>::TreeNode& node);
-    float calculateUCBValue(MoveEntry me);
-    int calculateMoveDistance(Move m, int player);
-    int playRandomDepth(ChineseCheckersState& state, Move m);
-    int evaluatePosition(ChineseCheckersState& state);
     int calculateDistanceToHome(unsigned piece, unsigned player);
-    void printAndRecvEcho(const std::string &msg) const;
+    int calculateMoveDistance(Move m, int player);
+    float calculateUCBValue(MoveEntry me);
+    int evaluatePosition(ChineseCheckersState& state);
+    void getStateCopy(Tree<MoveEntry>::TreeNode& node, ChineseCheckersState& stateCopy);
+    bool isValidMoveMessage(const std::vector<std::string>& tokens) const;
+    bool isValidStartGameMessage(const std::vector<std::string>& tokens) const;
+    Move nextMove();
+    int playRandomDepth(ChineseCheckersState& state);
+    void printAndRecvEcho(const std::string& msg) const;
     std::string readMsg() const;
-    std::vector<std::string> tokenizeMsg(const std::string &msg) const;
-    void waitForStart();
+    void runMonteCarlo(Tree<MoveEntry>* tree, std::chrono::system_clock::time_point endTime);
+    void simulate(ChineseCheckersState& state, Tree<MoveEntry>::TreeNode& node);
     void switchCurrentPlayer();
+    std::vector<std::string> tokenizeMsg(const std::string& msg) const;
+    void waitForStart();
 
-    bool isValidStartGameMessage(const std::vector<std::string> &tokens) const;
-    bool isValidMoveMessage(const std::vector<std::string> &tokens) const;
+    enum Players
+    {
+        player1,
+        player2
+    };
 
     const int TIMEOUT = INT_MAX - 1;
-    const int SECONDS_PER_TURN = 1000;
     const int WIN = INT_MAX;
     const int LOSE = INT_MIN + 1;
-    ChineseCheckersState state;
-    enum Players { player1, player2 };
+
     Players current_player;
     Players my_player;
     std::string name;
     std::string opp_name;
+
+    int deepestDepth;
+    int maxDepth = 5;
+    int secondsPerTurn = 10;
+    ChineseCheckersState state;
     int totalSamples;
-    int maxDepth = 20;
-    Tree<MoveEntry>* _tree;
+    bool verbose = false;
 };
 
 #endif

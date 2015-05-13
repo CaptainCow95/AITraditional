@@ -25,32 +25,19 @@ public:
     class TreeNode
     {
     public:
-        TreeNode()
-        {
-            children = new std::vector<TreeNode*>();
-            children->reserve(10);
-            this->parent = nullptr;
-            root = true;
-        }
-        TreeNode(T value, TreeNode* parent) : children(nullptr), parent(nullptr)
-        {
-            children = new std::vector<TreeNode*>();
-            children->reserve(10);
-            this->parent = parent;
-            this->value = value;
-            root = false;
-        }
-        ~TreeNode() { delete children; }
+        TreeNode() : parent(nullptr), root(true) { }
+        TreeNode(T v, TreeNode* p) : parent(p), value(v), root(false) { }
+        ~TreeNode() { for (auto n : children) delete n; }
 
-        void addChild(T child) { children->push_back(new TreeNode(child, this)); }
-        size_t size() { return children->size(); }
-        TreeNode& operator[] (const int index) { return *(*children)[index]; }
-        TreeNode& getParent() { return *parent; }
+        void addChild(T child) { children.push_back(new TreeNode(child, this)); }
+        size_t size() { return children.size(); }
+        TreeNode& operator[] (const int index) { return *children[index]; }
+        TreeNode* getParent() { return parent; }
         T& getValue() { return value; }
         bool isRoot() { return root; }
 
     private:
-        std::vector<TreeNode*>* children;
+        std::vector<TreeNode*> children;
         TreeNode* parent;
         T value;
         bool root;
@@ -127,7 +114,7 @@ public:
 
     leafiterator leafsBegin() { return leafiterator(*this); }
     leafiterator leafsEnd() { return leafiterator(*this, false); }
-    TreeNode& getRoot() { return *root; }
+    TreeNode* getRoot() { return root; }
 
 private:
     TreeNode* root;
