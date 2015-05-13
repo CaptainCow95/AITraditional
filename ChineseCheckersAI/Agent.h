@@ -2,6 +2,7 @@
 #ifndef AGENT_H_INCLUDED
 #define AGENT_H_INCLUDED
 
+#include <atomic>
 #include <chrono>
 #include <vector>
 #include "ChineseCheckersState.h"
@@ -64,7 +65,7 @@ private:
     int maxDepth = 5;
     int secondsPerTurn = 10;
     ChineseCheckersState state;
-    int totalSamples;
+    std::atomic<int> totalSamples;
     bool verbose = false;
     Tree<MoveEntry>* tree;
     std::chrono::system_clock::time_point endTime;

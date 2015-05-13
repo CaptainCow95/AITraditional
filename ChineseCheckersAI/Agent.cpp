@@ -52,7 +52,7 @@ int Agent::calculateMoveDistance(Move m, int player)
 
 float Agent::calculateUCBValue(MoveEntry me)
 {
-    return me.payout / (float)me.samples + 10 * (float)sqrt(log(totalSamples) / (float)me.samples);
+    return me.payout / (float)me.samples + 10 * (float)sqrt(log((int)totalSamples) / (float)me.samples);
 }
 
 int Agent::evaluatePosition(ChineseCheckersState& state)
