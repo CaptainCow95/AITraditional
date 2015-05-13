@@ -74,6 +74,7 @@
     <ClInclude Include="Agent.h" />
     <ClInclude Include="ChineseCheckersState.h" />
     <ClInclude Include="ThreadPool.h" />
+    <ClInclude Include="Tree.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
