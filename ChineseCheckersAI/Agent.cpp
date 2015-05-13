@@ -8,10 +8,12 @@
 
 Agent::Agent() : name("Agent_NJ")
 {
+	threadPool = new ThreadPool();
 }
 
 Agent::~Agent()
 {
+	delete threadPool;
 }
 
 int Agent::calculateDistanceToHome(unsigned piece, unsigned player)

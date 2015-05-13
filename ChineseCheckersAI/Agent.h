@@ -4,8 +4,8 @@
 
 #include <chrono>
 #include <vector>
-
 #include "ChineseCheckersState.h"
+#include "ThreadPool.h"
 #include "Tree.h"
 
 struct MoveEntry
@@ -59,6 +59,7 @@ private:
     std::string name;
     std::string opp_name;
 
+	ThreadPool* threadPool;
     int deepestDepth;
     int maxDepth = 5;
     int secondsPerTurn = 10;
