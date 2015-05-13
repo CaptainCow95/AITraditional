@@ -23,8 +23,8 @@ public:
     // move assignment
     ThreadPool &operator=(const ThreadPool&&) = delete;
 
-    int getQueuedJobs();
-    int getNumThreads();
+    size_t getQueuedJobs();
+    size_t getNumThreads();
 
     void queueJob(std::function<void(void*)> func, void* data);
 private:

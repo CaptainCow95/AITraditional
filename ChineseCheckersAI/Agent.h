@@ -9,13 +9,6 @@
 #include "ThreadPool.h"
 #include "Tree.h"
 
-struct MoveEntry
-{
-    int samples;
-    int64_t payout;
-    Move move;
-};
-
 class Agent
 {
 public:
@@ -29,9 +22,9 @@ public:
 private:
     int calculateDistanceToHome(unsigned piece, unsigned player);
     int calculateMoveDistance(Move m, int player);
-    float calculateUCBValue(MoveEntry me);
+    float calculateUCBValue(int samples, int64_t payout);
     int evaluatePosition(ChineseCheckersState& state);
-    void getStateCopy(Tree<MoveEntry>::TreeNode& node, ChineseCheckersState& stateCopy);
+    void getStateCopy(MoveTree::MoveTreeNode* node, ChineseCheckersState& stateCopy);
     bool isValidMoveMessage(const std::vector<std::string>& tokens) const;
     bool isValidStartGameMessage(const std::vector<std::string>& tokens) const;
     Move nextMove();
@@ -39,7 +32,8 @@ private:
     void printAndRecvEcho(const std::string& msg) const;
     std::string readMsg() const;
     void runMonteCarlo(void*);
-    void simulate(ChineseCheckersState& state, Tree<MoveEntry>::TreeNode& node);
+    int simulate(MoveTree::MoveTreeNode* node);
+    int simulate(MoveTree::MoveTreeNode* node, Move m);
     void switchCurrentPlayer();
     std::vector<std::string> tokenizeMsg(const std::string& msg) const;
     void waitForStart();
@@ -63,9 +57,9 @@ private:
     int deepestDepth;
     int maxDepth = 5;
     ChineseCheckersState state;
-    std::atomic<int> totalSamples;
+    std::atomic<uint64_t> totalSamples;
     bool verbose = false;
-    Tree<MoveEntry>* tree;
+    MoveTree* tree;
     std::chrono::system_clock::time_point endTime;
 };
 

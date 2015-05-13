@@ -5,6 +5,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <stack>
 
 Agent::Agent() : name("Agent_NJ")
 {
@@ -50,9 +51,9 @@ int Agent::calculateMoveDistance(Move m, int player)
     }
 }
 
-float Agent::calculateUCBValue(MoveEntry me)
+float Agent::calculateUCBValue(int samples, int64_t payout)
 {
-    return me.payout / (float)me.samples + 10 * (float)sqrt(log((int)totalSamples) / (float)me.samples);
+    return payout / (float)samples + 10 * (float)sqrt(log((int)totalSamples) / (float)samples);
 }
 
 int Agent::evaluatePosition(ChineseCheckersState& state)
@@ -78,7 +79,7 @@ int Agent::evaluatePosition(ChineseCheckersState& state)
     return total;
 }
 
-void Agent::getStateCopy(Tree<MoveEntry>::TreeNode& node, ChineseCheckersState& stateCopy)
+void Agent::getStateCopy(MoveTree::MoveTreeNode* node, ChineseCheckersState& stateCopy)
 {
     stateCopy.currentPlayer = state.currentPlayer;
     for (size_t i = 0; i < state.board.size(); ++i)
@@ -87,10 +88,10 @@ void Agent::getStateCopy(Tree<MoveEntry>::TreeNode& node, ChineseCheckersState& 
     }
 
     std::stack<Move> moveStack;
-    Tree<MoveEntry>::TreeNode* parentNode = &node;
+    auto parentNode = node;
     while (!parentNode->isRoot())
     {
-        moveStack.push(parentNode->getValue().move);
+        moveStack.push(parentNode->getMove());
         parentNode = parentNode->getParent();
     }
 
@@ -118,22 +119,25 @@ Move Agent::nextMove()
     endTime = startTime + std::chrono::milliseconds(SECONDS_PER_TURN * 1000 - 500);
     totalSamples = 0;
     deepestDepth = 0;
-    tree = new Tree<MoveEntry>();
+    tree = new MoveTree();
 
     std::vector<Move> stateMoves;
     state.getMoves(stateMoves);
+    std::vector<MoveTree::MoveTreeNode*>* nodeChildren = new std::vector<MoveTree::MoveTreeNode*>();
 
     for (auto& m : stateMoves)
     {
         ChineseCheckersState stateCopy;
-        getStateCopy(*tree->getRoot(), stateCopy);
-        tree->getRoot()->addChild({ 1, playRandomDepth(stateCopy), m });
+        getStateCopy(tree->getRoot(), stateCopy);
+        nodeChildren->push_back(new MoveTree::MoveTreeNode(1, playRandomDepth(stateCopy), m, tree->getRoot()));
         ++totalSamples;
     }
 
-    int numThreads = threadPool->getNumThreads();
+    tree->getRoot()->addChildren(nodeChildren);
+
+    size_t numThreads = threadPool->getNumThreads();
     std::function<void(void*)> runMonteCarloFunction = bind(&Agent::runMonteCarlo, this, std::placeholders::_1);
-    for (int i = 0; i < numThreads; ++i)
+    for (size_t i = 0; i < numThreads; ++i)
     {
         threadPool->queueJob(runMonteCarloFunction, nullptr);
     }
@@ -143,19 +147,19 @@ Move Agent::nextMove()
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 
-    MoveEntry entry = (*tree->getRoot())[0].getValue();
-    int64_t highestValue = entry.payout / entry.samples;
+    auto node = tree->getRoot()->get(0);
+    int64_t highestValue = node->payout / node->samples;
     int highestIndex = 0;
 
     if (verbose)
     {
-        std::cerr << entry.move << " " << entry.samples << " samples; avg: " << highestValue << std::endl;
+        std::cerr << node->getMove() << " " << node->samples << " samples; avg: " << highestValue << std::endl;
     }
 
-    for (size_t i = 1; i < tree->getRoot()->size(); ++i)
+    for (int i = 1; i < tree->getRoot()->getSize(); ++i)
     {
-        entry = (*tree->getRoot())[i].getValue();
-        int64_t value = entry.payout / entry.samples;
+        node = tree->getRoot()->get(i);
+        int64_t value = node->payout / node->samples;
         if (value > highestValue)
         {
             highestValue = value;
@@ -164,14 +168,14 @@ Move Agent::nextMove()
 
         if (verbose)
         {
-            std::cerr << entry.move << " " << entry.samples << " samples; avg: " << value << std::endl;
+            std::cerr << node->getMove() << " " << node->samples << " samples; avg: " << value << std::endl;
         }
     }
 
     std::cerr << "Deepest depth: " << deepestDepth << std::endl;
     std::cerr << "Total simulations: " << totalSamples << std::endl;
 
-    Move retMove = (*tree->getRoot())[highestIndex].getValue().move;
+    Move retMove = tree->getRoot()->get(highestIndex)->getMove();
     delete tree;
     return retMove;
 }
@@ -331,17 +335,18 @@ void Agent::runMonteCarlo(void*)
 {
     while (std::chrono::system_clock::now() < endTime)
     {
-        Tree<MoveEntry>::TreeNode* node = tree->getRoot();
-        node->enterLock();
+        auto node = tree->getRoot();
         int depth = 0;
-        while (node->size() > 0)
+        while (node->getSize() > 0)
         {
             // We have children
-            float highestValue = calculateUCBValue((*node)[0].getValue());
+            auto child = node->get(0);
+            float highestValue = calculateUCBValue(child->samples, child->payout);
             int bestMove = 0;
-            for (size_t i = 1; i < node->size(); ++i)
+            for (int i = 1; i < node->getSize(); ++i)
             {
-                float value = calculateUCBValue((*node)[i].getValue());
+                child = node->get(i);
+                float value = calculateUCBValue(child->samples, child->payout);
                 if (value > highestValue)
                 {
                     highestValue = value;
@@ -350,38 +355,46 @@ void Agent::runMonteCarlo(void*)
             }
 
             ++depth;
-            node->exitLock();
-            node = &(*node)[bestMove];
-            node->enterLock();
+            node = node->get(bestMove);
         }
 
+        deepestDepth = std::max(deepestDepth, depth);
+
         // We have no children
-        if (node->getValue().samples > 15)
+        if (node->samples > 15)
         {
-            // Expand the node
-            ChineseCheckersState stateCopy;
-            getStateCopy(*node, stateCopy);
-            std::vector<Move> moves;
-            stateCopy.getMoves(moves);
-            for (auto& m : moves)
+            node->enterLock();
+
+            if (node->addingChildren || node->getSize() > 0)
             {
-                node->addChild({ 0, 0, m });
-                auto& childNode = (*node)[node->size() - 1];
-                getStateCopy(childNode, stateCopy);
-                simulate(stateCopy, childNode);
+                // Simulate the node
+                node->exitLock();
+                simulate(node);
+            }
+            else
+            {
+                // Expand the node
+                node->addingChildren = true;
+                node->exitLock();
+
+                ChineseCheckersState stateCopy;
+                getStateCopy(node, stateCopy);
+                std::vector<Move> moves;
+                stateCopy.getMoves(moves);
+                std::vector<MoveTree::MoveTreeNode*>* children = new std::vector<MoveTree::MoveTreeNode*>();
+                for (auto& m : moves)
+                {
+                    children->push_back(new MoveTree::MoveTreeNode(1, simulate(node, m), m, node));
+                }
+
+                node->addChildren(children);
             }
         }
         else
         {
             // Simulate the node
-            ChineseCheckersState stateCopy;
-            getStateCopy(*node, stateCopy);
-            simulate(stateCopy, *node);
+            simulate(node);
         }
-
-        node->exitLock();
-
-        deepestDepth = std::max(deepestDepth, depth);
     }
 }
 
@@ -400,20 +413,41 @@ void Agent::setVerbose()
     verbose = true;
 }
 
-void Agent::simulate(ChineseCheckersState& state, Tree<MoveEntry>::TreeNode& node)
+int Agent::simulate(MoveTree::MoveTreeNode* node)
 {
-    int payout = playRandomDepth(state);
-    node.getValue().payout += payout;
-    node.getValue().samples += 1;
+    node->samples += 1;
+    int payout = simulate(node->getParent(), node->getMove());
+    node->payout += payout;
+    return payout;
+}
+
+int Agent::simulate(MoveTree::MoveTreeNode* node, Move m)
+{
+    node->samples += 1;
     ++totalSamples;
 
-    auto* parent = node.getParent();
-    while (!parent->isRoot())
+    auto parent = node->getParent();
+    while (parent != nullptr && !parent->isRoot())
     {
-        parent->getValue().payout += payout;
-        parent->getValue().samples += 1;
+        parent->samples += 1;
         parent = parent->getParent();
     }
+
+    ChineseCheckersState stateCopy;
+    getStateCopy(node, stateCopy);
+    stateCopy.applyMove(m);
+
+    int payout = playRandomDepth(stateCopy);
+    node->payout += payout;
+
+    parent = node->getParent();
+    while (parent != nullptr && !parent->isRoot())
+    {
+        parent->payout += payout;
+        parent = parent->getParent();
+    }
+
+    return payout;
 }
 
 void Agent::switchCurrentPlayer()
@@ -495,7 +529,7 @@ void Agent::waitForStart()
         }
         else if (tokens[0] == "PROFILE")
         {
-            for (int i = 0; i < 6; ++i)
+            for (;;)
             {
                 nextMove();
             }

@@ -17,15 +17,15 @@ ThreadPool::~ThreadPool()
     running = false;
 }
 
-int ThreadPool::getQueuedJobs()
+size_t ThreadPool::getQueuedJobs()
 {
     queuedJobsMutex.lock();
-    int returnValue = queuedJobs.size() + activeJobs;
+    size_t returnValue = queuedJobs.size() + activeJobs;
     queuedJobsMutex.unlock();
     return returnValue;
 }
 
-int ThreadPool::getNumThreads()
+size_t ThreadPool::getNumThreads()
 {
     return threads.size();
 }
