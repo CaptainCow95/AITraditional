@@ -24,7 +24,6 @@ public:
     void playGame();
     void setDepth(int depth);
     void setName(std::string newName);
-    void setProfile();
     void setVerbose();
 
 private:
@@ -51,7 +50,7 @@ private:
         player2
     };
 
-    const int TIMEOUT = INT_MAX - 1;
+    const int SECONDS_PER_TURN = 10;
     const int WIN = INT_MAX;
     const int LOSE = INT_MIN + 1;
 
@@ -63,7 +62,6 @@ private:
     ThreadPool* threadPool;
     int deepestDepth;
     int maxDepth = 5;
-    int secondsPerTurn = 10;
     ChineseCheckersState state;
     std::atomic<int> totalSamples;
     bool verbose = false;

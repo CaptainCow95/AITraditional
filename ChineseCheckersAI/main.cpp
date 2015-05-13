@@ -9,7 +9,6 @@ int main(int argc, char **argv)
     std::cerr << "--name n    Sets the agents name to what is supplied in 'n'" << std::endl;
     std::cerr << "--depth d   Sets the depth to play randomly to" << std::endl;
     std::cerr << "--verbose   Prints out tree information after each move" << std::endl;
-    std::cerr << "--profile   Forces the program to think a lot longer about each move, useful for profiling" << std::endl;
 
     Agent a;
 
@@ -45,11 +44,6 @@ int main(int argc, char **argv)
         {
             a.setVerbose();
             std::cerr << "Setting to verbose mode" << std::endl;
-        }
-        else if (strcmp(argv[i], "--profile") == 0)
-        {
-            a.setProfile();
-            std::cerr << "Setting to profile mode" << std::endl;
         }
     }
 
