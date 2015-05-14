@@ -379,7 +379,7 @@ void Agent::runMonteCarlo(void*)
         deepestDepth = std::max(deepestDepth, depth);
 
         // We have no children
-        if (node->samples > 15)
+        if (node->samples > 10)
         {
             node->enterLock();
 
