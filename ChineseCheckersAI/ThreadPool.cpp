@@ -5,8 +5,14 @@ ThreadPool::ThreadPool()
     activeJobs = 0;
     running = true;
 
-    // spawn 8 threads
-    for (int i = 0; i < 8; ++i)
+    // spawn the same number of threads as cpu cores, defaulting to 8 if it fails.
+    unsigned numThreads = std::thread::hardware_concurrency();
+    if (numThreads == 0)
+    {
+        numThreads = 8;
+    }
+
+    for (size_t i = 0; i < numThreads; ++i)
     {
         threads.push_back(std::thread(&ThreadPool::runThreadLoop, this));
     }
