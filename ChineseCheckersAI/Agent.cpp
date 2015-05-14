@@ -136,7 +136,7 @@ bool Agent::isValidStartGameMessage(const std::vector<std::string>& tokens) cons
 Move Agent::nextMove()
 {
     std::chrono::system_clock::time_point startTime = std::chrono::system_clock::now();
-    endTime = startTime + std::chrono::milliseconds(SECONDS_PER_TURN * 1000 - 500);
+    endTime = startTime + std::chrono::milliseconds(SECONDS_PER_TURN * 1000 - 1000);
     totalSamples = 0;
     deepestDepth = 0;
     tree = new MoveTree();
