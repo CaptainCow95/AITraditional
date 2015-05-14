@@ -182,7 +182,7 @@ void ChineseCheckersState::getMovesJump(std::vector<Move> &moves, unsigned from)
     getMovesJumpRecursive(moves, seen, from, from);
 }
 
-bool ChineseCheckersState::checkJumpMove(std::vector<Move> &moves, std::array<bool, 81>& seen, Move move, unsigned last) const {
+bool ChineseCheckersState::checkJumpMove(std::array<bool, 81>& seen, Move move, unsigned last) const {
     int row = move.to / 9;
     int col = move.to % 9;
 
@@ -207,7 +207,7 @@ void ChineseCheckersState::getMovesJumpRecursive(std::vector<Move> &moves, std::
 
     // Up Left
     Move move = { from, at - 2 };
-    if (col > 1 && checkJumpMove(moves, seen, move, at))
+    if (col > 1 && checkJumpMove(seen, move, at))
     {
         moves.push_back(move);
         getMovesJumpRecursive(moves, seen, from, move.to);
@@ -215,7 +215,7 @@ void ChineseCheckersState::getMovesJumpRecursive(std::vector<Move> &moves, std::
 
     // Up Right
     move = { from, at - 18 };
-    if (row > 1 && checkJumpMove(moves, seen, move, at))
+    if (row > 1 && checkJumpMove(seen, move, at))
     {
         moves.push_back(move);
         getMovesJumpRecursive(moves, seen, from, move.to);
@@ -223,7 +223,7 @@ void ChineseCheckersState::getMovesJumpRecursive(std::vector<Move> &moves, std::
 
     // Left
     move = { from, at + 16 };
-    if (col > 1 && checkJumpMove(moves, seen, move, at))
+    if (col > 1 && checkJumpMove(seen, move, at))
     {
         moves.push_back(move);
         getMovesJumpRecursive(moves, seen, from, move.to);
@@ -231,7 +231,7 @@ void ChineseCheckersState::getMovesJumpRecursive(std::vector<Move> &moves, std::
 
     // Right
     move = { from, at - 16 };
-    if (col < 7 && checkJumpMove(moves, seen, move, at))
+    if (col < 7 && checkJumpMove(seen, move, at))
     {
         moves.push_back(move);
         getMovesJumpRecursive(moves, seen, from, move.to);
@@ -239,7 +239,7 @@ void ChineseCheckersState::getMovesJumpRecursive(std::vector<Move> &moves, std::
 
     // Down Left
     move = { from, at + 18 };
-    if (row < 7 && checkJumpMove(moves, seen, move, at))
+    if (row < 7 && checkJumpMove(seen, move, at))
     {
         moves.push_back(move);
         getMovesJumpRecursive(moves, seen, from, move.to);
@@ -247,7 +247,7 @@ void ChineseCheckersState::getMovesJumpRecursive(std::vector<Move> &moves, std::
 
     // Down Right
     move = { from, at + 2 };
-    if (col < 7 && checkJumpMove(moves, seen, move, at))
+    if (col < 7 && checkJumpMove(seen, move, at))
     {
         moves.push_back(move);
         getMovesJumpRecursive(moves, seen, from, move.to);
