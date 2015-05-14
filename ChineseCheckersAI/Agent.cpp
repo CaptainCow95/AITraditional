@@ -17,6 +17,20 @@ Agent::~Agent()
     delete threadPool;
 }
 
+void Agent::applyNodeToState(MoveTree::MoveTreeNode* node, ChineseCheckersState& stateCopy)
+{
+    if (!node->isRoot())
+    {
+        applyNodeToState(node->getParent(), stateCopy);
+    }
+    else
+    {
+        return;
+    }
+
+    stateCopy.applyMove(node->getMove());
+}
+
 int Agent::calculateDistanceToHome(unsigned piece, unsigned player)
 {
     int row = piece / 9;
@@ -105,19 +119,7 @@ void Agent::getStateCopy(MoveTree::MoveTreeNode* node, ChineseCheckersState& sta
         stateCopy.board[i] = state.board[i];
     }
 
-    std::stack<Move> moveStack;
-    auto parentNode = node;
-    while (!parentNode->isRoot())
-    {
-        moveStack.push(parentNode->getMove());
-        parentNode = parentNode->getParent();
-    }
-
-    while (!moveStack.empty())
-    {
-        stateCopy.applyMove(moveStack.top());
-        moveStack.pop();
-    }
+    applyNodeToState(node, stateCopy);
 }
 
 bool Agent::isValidMoveMessage(const std::vector<std::string>& tokens) const
@@ -281,6 +283,7 @@ int Agent::playRandomDepth(ChineseCheckersState& state)
     {
         ++depth;
         std::vector<Move> moves;
+        moves.reserve(500);
         state.getMoves(moves);
         if (rand() % 10 == 0)
         {

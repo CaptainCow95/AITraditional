@@ -20,6 +20,7 @@ public:
     void setVerbose();
 
 private:
+    void applyNodeToState(MoveTree::MoveTreeNode* node, ChineseCheckersState& stateCopy);
     int calculateDistanceToHome(unsigned piece, unsigned player);
     int calculateMoveDistance(Move m, int player);
     float calculateUCBValue(int samples, int64_t payout);
