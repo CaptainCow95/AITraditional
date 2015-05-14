@@ -9,8 +9,8 @@ public:
     class MoveTreeNode
     {
     public:
-        MoveTreeNode() : samples(0), payout(0), children(nullptr), parent(nullptr), root(true), size(0), addingChildren(false) { }
-        MoveTreeNode(int samples, int64_t payout, Move move, MoveTreeNode* p) : samples(samples), payout(payout), children(nullptr), parent(p), move(move), root(false), size(0), addingChildren(false) { }
+        MoveTreeNode() : samples(0), payout(0), addingChildren(false), children(nullptr), parent(nullptr), root(true), size(0) { }
+        MoveTreeNode(int samples, int64_t payout, float ucbValue, Move move, MoveTreeNode* p) : samples(samples), payout(payout), ucbValue(ucbValue), addingChildren(false), children(nullptr), parent(p), move(move), root(false), size(0) { }
         ~MoveTreeNode()
         {
             if (children != nullptr)
@@ -22,9 +22,6 @@ public:
 
         void addChildren(std::vector<MoveTreeNode*>* children)
         {
-#ifdef DEBUG
-            assert(this->children == nullptr);
-#endif
             this->children = children;
             size += children->size();
         }
@@ -43,6 +40,7 @@ public:
 
         std::atomic<int32_t> samples;
         std::atomic<int64_t> payout;
+        std::atomic<float> ucbValue;
         std::atomic<bool> addingChildren;
 
     private:

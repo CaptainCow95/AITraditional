@@ -149,7 +149,8 @@ Move Agent::nextMove()
     {
         ChineseCheckersState stateCopy;
         getStateCopy(tree->getRoot(), stateCopy);
-        nodeChildren->push_back(new MoveTree::MoveTreeNode(1, playRandomDepth(stateCopy), m, tree->getRoot()));
+        auto payout = playRandomDepth(stateCopy);
+        nodeChildren->push_back(new MoveTree::MoveTreeNode(1, payout, calculateUCBValue(1, payout), m, tree->getRoot()));
         ++totalSamples;
     }
 
@@ -362,12 +363,12 @@ void Agent::runMonteCarlo(void*)
         {
             // We have children
             auto child = node->get(0);
-            float highestValue = calculateUCBValue(child->samples, child->payout);
+            float highestValue = child->ucbValue;
             int bestMove = 0;
             for (int i = 1; i < node->getSize(); ++i)
             {
                 child = node->get(i);
-                float value = calculateUCBValue(child->samples, child->payout);
+                float value = child->ucbValue;
                 if (value > highestValue)
                 {
                     highestValue = value;
@@ -405,7 +406,8 @@ void Agent::runMonteCarlo(void*)
                 std::vector<MoveTree::MoveTreeNode*>* children = new std::vector<MoveTree::MoveTreeNode*>();
                 for (auto& m : moves)
                 {
-                    children->push_back(new MoveTree::MoveTreeNode(1, simulate(node, m), m, node));
+                    auto payout = simulate(node, m);
+                    children->push_back(new MoveTree::MoveTreeNode(1, payout, calculateUCBValue(1, payout), m, node));
                 }
 
                 node->addChildren(children);
@@ -439,6 +441,7 @@ int Agent::simulate(MoveTree::MoveTreeNode* node)
     node->samples += 1;
     int payout = simulate(node->getParent(), node->getMove());
     node->payout += payout;
+    node->ucbValue = calculateUCBValue(node->samples, node->payout);
     return payout;
 }
 
@@ -460,11 +463,13 @@ int Agent::simulate(MoveTree::MoveTreeNode* node, Move m)
 
     int payout = playRandomDepth(stateCopy);
     node->payout += payout;
+    node->ucbValue = calculateUCBValue(node->samples, node->payout);
 
     parent = node->getParent();
     while (parent != nullptr && !parent->isRoot())
     {
         parent->payout += payout;
+        parent->ucbValue = calculateUCBValue(parent->samples, parent->payout);
         parent = parent->getParent();
     }
 
