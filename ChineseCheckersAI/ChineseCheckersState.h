@@ -78,7 +78,7 @@ private:
     void getMovesSingleStep(std::vector<Move> &moves, unsigned from) const;
     void getMovesJump(std::vector<Move> &moves, unsigned from) const;
     void getMovesJumpRecursive(std::vector<Move> &move, std::array<bool, 81>& seen, unsigned from, unsigned at) const;
-    bool checkJumpMove(std::array<bool, 81>& seen, Move move, unsigned last) const;
+    bool checkJumpMove(std::array<bool, 81>& seen, unsigned moveTo, unsigned last) const;
 
     void swapTurn();
 

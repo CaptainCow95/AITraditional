@@ -40,7 +40,7 @@ public:
 
         std::atomic<int32_t> samples;
         std::atomic<int64_t> payout;
-        std::atomic<float> ucbValue;
+        float ucbValue;
         std::atomic<bool> addingChildren;
 
     private:
