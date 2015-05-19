@@ -84,7 +84,7 @@ float Agent::calculateUCBValue(int samples, int64_t payout)
     sqrtTemp = (1 << 29) + (sqrtTemp >> 1) - (1 << 22) + -0x4C000;
     float sqrtResult = *(float*)&sqrtTemp;
 
-    float fast = payout / (float)samples + 30 * sqrtResult;
+    float fast = payout / (float)samples + explorationConstant * sqrtResult;
     return fast;
 }
 
@@ -424,6 +424,11 @@ void Agent::runMonteCarlo(void*)
 void Agent::setDepth(int depth)
 {
     maxDepth = depth;
+}
+
+void Agent::setExplorationConstant(int constant)
+{
+    explorationConstant = constant;
 }
 
 void Agent::setName(std::string newName)

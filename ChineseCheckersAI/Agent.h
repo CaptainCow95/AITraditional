@@ -16,6 +16,7 @@ public:
     ~Agent();
     void playGame();
     void setDepth(int depth);
+    void setExplorationConstant(int constant);
     void setName(std::string newName);
     void setVerbose();
 
@@ -57,6 +58,7 @@ private:
     ThreadPool* threadPool;
     int deepestDepth;
     int maxDepth = 5;
+    int explorationConstant = 30;
     ChineseCheckersState state;
     std::atomic<uint32_t> totalSamples;
     bool verbose = false;
