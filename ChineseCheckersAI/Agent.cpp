@@ -193,12 +193,47 @@ Move Agent::nextMove()
         }
     }
 
-    std::cerr << "Deepest depth: " << deepestDepth << std::endl;
-    std::cerr << "Total simulations: " << totalSamples << std::endl;
+    std::cerr << "Deepest depth: " << deepestDepth << " Total simulations: " << totalSamples << std::endl;
 
     Move retMove = tree->getRoot()->get(highestIndex)->getMove();
     delete tree;
     return retMove;
+}
+
+Players Agent::playGame(Agent& player1, Agent& player2)
+{
+    unsigned turn = 0;
+    player1.my_player = Players::player1;
+    player1.current_player = Players::player1;
+    player2.my_player = Players::player2;
+    player2.current_player = Players::player1;
+
+    for (;;)
+    {
+        if (player1.state.gameOver())
+        {
+            return Players::player2;
+        }
+
+        Move m = player1.nextMove();
+        player1.state.applyMove(m);
+        player1.switchCurrentPlayer();
+        player2.state.applyMove(m);
+        player2.switchCurrentPlayer();
+
+        if (player2.state.gameOver())
+        {
+            return Players::player1;
+        }
+
+        m = player2.nextMove();
+        player1.state.applyMove(m);
+        player1.switchCurrentPlayer();
+        player2.state.applyMove(m);
+        player2.switchCurrentPlayer();
+        ++turn;
+        std::cerr << "Played " << turn << " turns." << std::endl;
+    }
 }
 
 void Agent::playGame()

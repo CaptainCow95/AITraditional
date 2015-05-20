@@ -9,11 +9,18 @@
 #include "ThreadPool.h"
 #include "Tree.h"
 
+enum Players
+{
+    player1,
+    player2
+};
+
 class Agent
 {
 public:
     Agent();
     ~Agent();
+    static Players playGame(Agent& player1, Agent& player2);
     void playGame();
     void setDepth(int depth);
     void setExplorationConstant(int constant);
@@ -40,13 +47,7 @@ private:
     std::vector<std::string> tokenizeMsg(const std::string& msg) const;
     void waitForStart();
 
-    enum Players
-    {
-        player1,
-        player2
-    };
-
-    const int SECONDS_PER_TURN = 10;
+    const int SECONDS_PER_TURN = 2;
     const int WIN = INT_MAX;
     const int LOSE = INT_MIN + 1;
 

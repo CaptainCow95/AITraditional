@@ -21,6 +21,10 @@ ThreadPool::ThreadPool()
 ThreadPool::~ThreadPool()
 {
     running = false;
+    for (size_t i = 0; i < threads.size(); ++i)
+    {
+        threads[i].join();
+    }
 }
 
 size_t ThreadPool::getQueuedJobs()

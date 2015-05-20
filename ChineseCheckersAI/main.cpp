@@ -15,6 +15,24 @@ int main(int argc, char **argv)
     std::cerr << "--explorationconstant   Sets the exploration constant of the UCB calculation" << std::endl;
     std::cerr << "-e                      Sets the exploration constant of the UCB calculation" << std::endl;
 
+    // Uncomment for an example of playing an AI against itself.
+    //#define TRAIN
+#ifdef TRAIN
+    Agent player1, player2;
+    player1.setName("Player1");
+    player1.setDepth(10);
+    player2.setName("Player2");
+    player2.setDepth(1000);
+    Players winner = Agent::playGame(player1, player2);
+    if (winner == Players::player1)
+    {
+        std::cerr << "Player 1 wins!" << std::endl;
+    }
+    else
+    {
+        std::cerr << "Player 2 wins!" << std::endl;
+    }
+#else
     Agent a;
 
     for (int i = 1; i < argc; ++i)
@@ -66,6 +84,7 @@ int main(int argc, char **argv)
     }
 
     a.playGame();
+#endif
 
     return EXIT_SUCCESS;
-}
+    }
