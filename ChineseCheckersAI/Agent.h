@@ -25,7 +25,7 @@ public:
     void setDepth(int depth);
     void setExplorationConstant(int constant);
     void setName(std::string newName);
-    void setVerbose();
+    void setVerbose(bool value);
 
 private:
     void applyNodeToState(MoveTree::MoveTreeNode* node, ChineseCheckersState& stateCopy);
@@ -47,7 +47,7 @@ private:
     std::vector<std::string> tokenizeMsg(const std::string& msg) const;
     void waitForStart();
 
-    const int SECONDS_PER_TURN = 2;
+    const int SECONDS_PER_TURN = 10;
     const int WIN = INT_MAX;
     const int LOSE = INT_MIN + 1;
 
@@ -58,11 +58,11 @@ private:
 
     ThreadPool* threadPool;
     int deepestDepth;
-    int maxDepth = 5;
-    int explorationConstant = 30;
+    int maxDepth = 10;
+    int explorationConstant = 35;
     ChineseCheckersState state;
     std::atomic<uint32_t> totalSamples;
-    bool verbose = false;
+    int verbose = 0;
     MoveTree* tree;
     std::chrono::system_clock::time_point endTime;
 };

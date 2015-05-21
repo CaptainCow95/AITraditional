@@ -172,7 +172,7 @@ Move Agent::nextMove()
     int64_t highestValue = node->payout / node->samples;
     int highestIndex = 0;
 
-    if (verbose)
+    if (verbose == 1)
     {
         std::cerr << node->getMove() << " " << node->samples << " samples; avg: " << highestValue << std::endl;
     }
@@ -187,13 +187,16 @@ Move Agent::nextMove()
             highestIndex = i;
         }
 
-        if (verbose)
+        if (verbose == 1)
         {
             std::cerr << node->getMove() << " " << node->samples << " samples; avg: " << value << std::endl;
         }
     }
 
-    std::cerr << "Deepest depth: " << deepestDepth << " Total simulations: " << totalSamples << std::endl;
+    if (verbose != -1)
+    {
+        std::cerr << "Deepest depth: " << deepestDepth << " Total simulations: " << totalSamples << std::endl;
+    }
 
     Move retMove = tree->getRoot()->get(highestIndex)->getMove();
     delete tree;
@@ -202,7 +205,6 @@ Move Agent::nextMove()
 
 Players Agent::playGame(Agent& player1, Agent& player2)
 {
-    unsigned turn = 0;
     player1.my_player = Players::player1;
     player1.current_player = Players::player1;
     player2.my_player = Players::player2;
@@ -231,8 +233,6 @@ Players Agent::playGame(Agent& player1, Agent& player2)
         player1.switchCurrentPlayer();
         player2.state.applyMove(m);
         player2.switchCurrentPlayer();
-        ++turn;
-        std::cerr << "Played " << turn << " turns." << std::endl;
     }
 }
 
@@ -471,9 +471,16 @@ void Agent::setName(std::string newName)
     name = newName;
 }
 
-void Agent::setVerbose()
+void Agent::setVerbose(bool value)
 {
-    verbose = true;
+    if (value)
+    {
+        verbose = 1;
+    }
+    else
+    {
+        verbose = -1;
+    }
 }
 
 int Agent::simulate(MoveTree::MoveTreeNode* node)

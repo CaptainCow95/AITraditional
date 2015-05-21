@@ -18,20 +18,73 @@ int main(int argc, char **argv)
     // Uncomment for an example of playing an AI against itself.
     //#define TRAIN
 #ifdef TRAIN
-    Agent player1, player2;
-    player1.setName("Player1");
-    player1.setDepth(10);
-    player2.setName("Player2");
-    player2.setDepth(1000);
-    Players winner = Agent::playGame(player1, player2);
-    if (winner == Players::player1)
+    std::vector<int> depths, explorationConstants;
+    depths.push_back(5);
+    depths.push_back(10);
+    depths.push_back(15);
+    depths.push_back(20);
+    depths.push_back(25);
+    depths.push_back(50);
+    depths.push_back(1000); // To the end
+
+    /*explorationConstants.push_back(5);
+    explorationConstants.push_back(7);
+    explorationConstants.push_back(10);
+    explorationConstants.push_back(15);
+    explorationConstants.push_back(20);
+    explorationConstants.push_back(25);
+    explorationConstants.push_back(30);*/
+    explorationConstants.push_back(35);
+    /*explorationConstants.push_back(40);
+    explorationConstants.push_back(45);
+    explorationConstants.push_back(50);*/
+
+    int bestDepth = depths[0];
+    int bestExplorationConstant = explorationConstants[0];
+
+    for (int d = 0; d < depths.size(); ++d)
     {
-        std::cerr << "Player 1 wins!" << std::endl;
+        for (int e = 0; e < explorationConstants.size(); ++e)
+        {
+            if (d == 0 && e == 0) continue;
+            int player1Wins = 0;
+            int player2Wins = 0;
+            for (;;)
+            {
+                if (player1Wins == 5 || player2Wins == 5) break;
+                Agent player1, player2;
+                player1.setName("Player1");
+                player1.setDepth(bestDepth);
+                player1.setExplorationConstant(bestExplorationConstant);
+                player1.setVerbose(false);
+                player2.setName("Player2");
+                player2.setDepth(depths[d]);
+                player2.setExplorationConstant(explorationConstants[e]);
+                player2.setVerbose(false);
+                if (Agent::playGame(player1, player2) == Players::player1)
+                {
+                    std::cerr << "Player 1 wins!" << std::endl;
+                    ++player1Wins;
+                }
+                else
+                {
+                    std::cerr << "Player 2 wins!" << std::endl;
+                    ++player2Wins;
+                }
+            }
+
+            if (player2Wins == 5)
+            {
+                bestDepth = depths[d];
+                bestExplorationConstant = explorationConstants[e];
+            }
+
+            std::cerr << (player1Wins == 5 ? "Player 1 wins the set." : "Player 2 wins the set.") << " Winning values: depth " << bestDepth << " exploration constant " << bestExplorationConstant << std::endl;
+        }
     }
-    else
-    {
-        std::cerr << "Player 2 wins!" << std::endl;
-    }
+
+    std::cerr << "Best values found: depth " << bestDepth << " exploration constant " << bestExplorationConstant << std::endl;
+    system("pause");
 #else
     Agent a;
 
@@ -65,7 +118,7 @@ int main(int argc, char **argv)
         }
         else if (strcmp(argv[i], "--verbose") == 0 || strcmp(argv[i], "-v") == 0)
         {
-            a.setVerbose();
+            a.setVerbose(true);
             std::cerr << "Setting to verbose mode" << std::endl;
         }
         else if (strcmp(argv[i], "--explorationconstant") == 0 || strcmp(argv[i], "-e") == 0)
@@ -87,4 +140,4 @@ int main(int argc, char **argv)
 #endif
 
     return EXIT_SUCCESS;
-    }
+}
