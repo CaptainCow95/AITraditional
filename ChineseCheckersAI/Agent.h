@@ -25,6 +25,7 @@ public:
     void setDepth(int depth);
     void setExplorationConstant(int constant);
     void setName(std::string newName);
+    void setSecondsPerTurn(int value);
     void setVerbose(bool value);
 
 private:
@@ -47,9 +48,8 @@ private:
     std::vector<std::string> tokenizeMsg(const std::string& msg) const;
     void waitForStart();
 
-    const int SECONDS_PER_TURN = 10;
-    const int WIN = INT_MAX;
-    const int LOSE = INT_MIN + 1;
+    const int WIN = 200;
+    const int LOSE = -200;
 
     Players current_player;
     Players my_player;
@@ -60,6 +60,7 @@ private:
     int deepestDepth;
     int maxDepth = 10;
     int explorationConstant = 35;
+    int secondsPerTurn = 10;
     ChineseCheckersState state;
     std::atomic<uint32_t> totalSamples;
     int verbose = 0;

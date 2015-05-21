@@ -136,7 +136,7 @@ bool Agent::isValidStartGameMessage(const std::vector<std::string>& tokens) cons
 Move Agent::nextMove()
 {
     std::chrono::system_clock::time_point startTime = std::chrono::system_clock::now();
-    endTime = startTime + std::chrono::milliseconds(SECONDS_PER_TURN * 1000 - 1000);
+    endTime = startTime + std::chrono::milliseconds(secondsPerTurn * 1000 - 800);
     totalSamples = 0;
     deepestDepth = 0;
     tree = new MoveTree();
@@ -165,7 +165,7 @@ Move Agent::nextMove()
 
     while (threadPool->getQueuedJobs() > 0)
     {
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 
     auto node = tree->getRoot()->get(0);
@@ -177,7 +177,7 @@ Move Agent::nextMove()
         std::cerr << node->getMove() << " " << node->samples << " samples; avg: " << highestValue << std::endl;
     }
 
-    for (int i = 1; i < tree->getRoot()->getSize(); ++i)
+    for (unsigned i = 1; i < tree->getRoot()->getSize(); ++i)
     {
         node = tree->getRoot()->get(i);
         int64_t value = node->payout / node->samples;
@@ -350,7 +350,7 @@ int Agent::playRandomDepth(ChineseCheckersState& state)
     {
         if (state.winner() - 1 == current_player)
         {
-            return WIN / ((depth == 0) ? 1 : depth);
+            return WIN;
         }
         else
         {
@@ -400,7 +400,7 @@ void Agent::runMonteCarlo(void*)
             auto child = node->get(0);
             float highestValue = child->ucbValue;
             int bestMove = 0;
-            for (int i = 1; i < node->getSize(); ++i)
+            for (unsigned i = 1; i < node->getSize(); ++i)
             {
                 child = node->get(i);
                 float value = child->ucbValue;
@@ -469,6 +469,11 @@ void Agent::setExplorationConstant(int constant)
 void Agent::setName(std::string newName)
 {
     name = newName;
+}
+
+void Agent::setSecondsPerTurn(int value)
+{
+    secondsPerTurn = value;
 }
 
 void Agent::setVerbose(bool value)
