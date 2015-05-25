@@ -280,10 +280,7 @@ Move Agent::nextMove()
             moveValue = runMiniMax(0, maxDepth, endTime, move);
         }
 
-        if (verbose != -1)
-        {
-            std::cerr << "Reached a depth of " << maxDepth << std::endl;
-        }
+        std::cerr << "Reached a depth of " << maxDepth << std::endl;
 
         return bestMove;
     }
@@ -322,7 +319,7 @@ Move Agent::nextMove()
         int64_t highestValue = node->payout / node->samples;
         int highestIndex = 0;
 
-        if (verbose == 1)
+        if (verbose)
         {
             std::cerr << node->getMove() << " " << node->samples << " samples; avg: " << highestValue << std::endl;
         }
@@ -337,53 +334,17 @@ Move Agent::nextMove()
                 highestIndex = i;
             }
 
-            if (verbose == 1)
+            if (verbose)
             {
                 std::cerr << node->getMove() << " " << node->samples << " samples; avg: " << value << std::endl;
             }
         }
 
-        if (verbose != -1)
-        {
-            std::cerr << "Deepest depth: " << deepestDepth << " Total simulations: " << totalSamples << std::endl;
-        }
+        std::cerr << "Deepest depth: " << deepestDepth << " Total simulations: " << totalSamples << std::endl;
 
         Move retMove = tree->getRoot()->get(highestIndex)->getMove();
         delete tree;
         return retMove;
-    }
-}
-
-Players Agent::playGame(Agent& player1, Agent& player2)
-{
-    player1.my_player = Players::player1;
-    player1.current_player = Players::player1;
-    player2.my_player = Players::player2;
-    player2.current_player = Players::player1;
-
-    for (;;)
-    {
-        if (player1.state.gameOver())
-        {
-            return Players::player2;
-        }
-
-        Move m = player1.nextMove();
-        player1.state.applyMove(m);
-        player1.switchCurrentPlayer();
-        player2.state.applyMove(m);
-        player2.switchCurrentPlayer();
-
-        if (player2.state.gameOver())
-        {
-            return Players::player1;
-        }
-
-        m = player2.nextMove();
-        player1.state.applyMove(m);
-        player1.switchCurrentPlayer();
-        player2.state.applyMove(m);
-        player2.switchCurrentPlayer();
     }
 }
 
@@ -709,16 +670,9 @@ void Agent::setSecondsPerTurn(int value)
     secondsPerTurn = value;
 }
 
-void Agent::setVerbose(bool value)
+void Agent::setVerbose()
 {
-    if (value)
-    {
-        verbose = 1;
-    }
-    else
-    {
-        verbose = -1;
-    }
+    verbose = true;
 }
 
 int Agent::simulate(MoveTree::MoveTreeNode* node)

@@ -20,13 +20,12 @@ class Agent
 public:
     Agent();
     ~Agent();
-    static Players playGame(Agent& player1, Agent& player2);
     void playGame();
     void setDepth(int depth);
     void setExplorationConstant(int constant);
     void setName(std::string newName);
     void setSecondsPerTurn(int value);
-    void setVerbose(bool value);
+    void setVerbose();
 
 private:
     void applyNodeToState(MoveTree::MoveTreeNode* node, ChineseCheckersState& stateCopy);
@@ -67,7 +66,7 @@ private:
     int secondsPerTurn = 10;
     ChineseCheckersState state;
     std::atomic<uint32_t> totalSamples;
-    int verbose = 0;
+    bool verbose = false;
     MoveTree* tree;
     std::chrono::system_clock::time_point endTime;
     int currentTurn = 0;

@@ -43,7 +43,7 @@ int main(int argc, char **argv)
         }
         else if (strcmp(argv[i], "-v") == 0)
         {
-            a.setVerbose(true);
+            a.setVerbose();
             std::cerr << "Setting to verbose mode" << std::endl;
         }
         else if (strcmp(argv[i], "-e") == 0)
