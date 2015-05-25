@@ -62,14 +62,15 @@ private:
     std::vector<std::vector<Move>*>* bestMoveVectorCache;
     ThreadPool* threadPool;
     int deepestDepth;
-    int maxDepth = 10;
-    int explorationConstant = 35;
+    int maxDepth = 9;
+    int explorationConstant = 25;
     int secondsPerTurn = 10;
     ChineseCheckersState state;
     std::atomic<uint32_t> totalSamples;
     int verbose = 0;
     MoveTree* tree;
     std::chrono::system_clock::time_point endTime;
+    int currentTurn = 0;
 };
 
 #endif

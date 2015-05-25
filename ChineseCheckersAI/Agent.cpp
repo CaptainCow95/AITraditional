@@ -190,6 +190,38 @@ bool Agent::isValidStartGameMessage(const std::vector<std::string>& tokens) cons
 
 Move Agent::nextMove()
 {
+    ++currentTurn;
+    if (my_player == 0)
+    {
+        if (currentTurn == 1)
+        {
+            return{ 3, 12 };
+        }
+        else if (currentTurn == 2)
+        {
+            return{ 1, 21 };
+        }
+        else if (currentTurn == 3)
+        {
+            return{ 2, 22 };
+        }
+    }
+    else
+    {
+        if (currentTurn == 1)
+        {
+            return{ 77, 68 };
+        }
+        else if (currentTurn == 2)
+        {
+            return{ 79, 59 };
+        }
+        else if (currentTurn == 3)
+        {
+            return{ 78, 58 };
+        }
+    }
+
     std::chrono::system_clock::time_point startTime = std::chrono::system_clock::now();
     endTime = startTime + std::chrono::milliseconds(secondsPerTurn * 1000 - 800);
     totalSamples = 0;
@@ -205,7 +237,7 @@ Move Agent::nextMove()
                 int row = i / 9;
                 int col = i % 9;
 
-                if (row + col < 9)
+                if (row + col < 11)
                 {
                     doMiniMax = false;
                     break;
@@ -219,7 +251,7 @@ Move Agent::nextMove()
                 int row = i / 9;
                 int col = i % 9;
 
-                if (row + col > 7)
+                if (row + col > 5)
                 {
                     doMiniMax = false;
                     break;
