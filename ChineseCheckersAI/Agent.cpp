@@ -10,11 +10,23 @@
 Agent::Agent() : name("Agent_NJ")
 {
     threadPool = new ThreadPool();
+    moveVectorCache = new std::vector<std::vector<Move>*>();
+    bestMoveVectorCache = new std::vector<std::vector<Move>*>();
+    moveVectorCache->push_back(new std::vector<Move>());
+    bestMoveVectorCache->push_back(new std::vector<Move>());
 }
 
 Agent::~Agent()
 {
     delete threadPool;
+    for (unsigned i = 0; i < moveVectorCache->size(); ++i)
+    {
+        delete moveVectorCache->at(i);
+        delete bestMoveVectorCache->at(i);
+    }
+
+    delete moveVectorCache;
+    delete bestMoveVectorCache;
 }
 
 void Agent::applyNodeToState(MoveTree::MoveTreeNode* node, ChineseCheckersState& stateCopy)
@@ -96,14 +108,57 @@ int Agent::evaluatePosition(ChineseCheckersState& state)
         if (state.board[i] != 0)
         {
             int player = state.board[i];
-            int distance = calculateDistanceToHome(i, player);
+            int distance = calculateDistanceToHome(i, my_player + 1);
             if (player == my_player + 1)
             {
-                total -= distance;
+                switch (distance)
+                {
+                case 0:
+                    total -= 0;
+                    break;
+                case 1:
+                case 2:
+                    total -= 1;
+                    break;
+                case 3:
+                case 4:
+                    total -= 2;
+                    break;
+                case 5:
+                    total -= 3;
+                    break;
+                case 6:
+                    total -= 4;
+                    break;
+                case 7:
+                    total -= 5;
+                    break;
+                case 8:
+                    total -= 7;
+                    break;
+                case 9:
+                    total -= 9;
+                    break;
+                case 10:
+                    total -= 11;
+                    break;
+                case 11:
+                    total -= 14;
+                    break;
+                case 12:
+                    total -= 17;
+                    break;
+                case 13:
+                    total -= 21;
+                    break;
+                default:
+                    total -= 25;
+                    break;
+                }
             }
             else
             {
-                total += distance;
+                total -= distance;
             }
         }
     }
@@ -139,68 +194,132 @@ Move Agent::nextMove()
     endTime = startTime + std::chrono::milliseconds(secondsPerTurn * 1000 - 800);
     totalSamples = 0;
     deepestDepth = 0;
-    tree = new MoveTree();
 
-    std::vector<Move> stateMoves;
-    state.getMoves(stateMoves);
-    std::vector<MoveTree::MoveTreeNode*>* nodeChildren = new std::vector<MoveTree::MoveTreeNode*>();
-
-    for (auto& m : stateMoves)
+    bool doMiniMax = true;
+    for (unsigned i = 0; i < 81; ++i)
     {
-        ChineseCheckersState stateCopy;
-        getStateCopy(tree->getRoot(), stateCopy);
-        auto payout = playRandomDepth(stateCopy);
-        nodeChildren->push_back(new MoveTree::MoveTreeNode(1, payout, calculateUCBValue(1, payout), m, tree->getRoot()));
-        ++totalSamples;
-    }
-
-    tree->getRoot()->addChildren(nodeChildren);
-
-    size_t numThreads = threadPool->getNumThreads();
-    std::function<void(void*)> runMonteCarloFunction = bind(&Agent::runMonteCarlo, this, std::placeholders::_1);
-    for (size_t i = 0; i < numThreads; ++i)
-    {
-        threadPool->queueJob(runMonteCarloFunction, nullptr);
-    }
-
-    while (threadPool->getQueuedJobs() > 0)
-    {
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
-    }
-
-    auto node = tree->getRoot()->get(0);
-    int64_t highestValue = node->payout / node->samples;
-    int highestIndex = 0;
-
-    if (verbose == 1)
-    {
-        std::cerr << node->getMove() << " " << node->samples << " samples; avg: " << highestValue << std::endl;
-    }
-
-    for (unsigned i = 1; i < tree->getRoot()->getSize(); ++i)
-    {
-        node = tree->getRoot()->get(i);
-        int64_t value = node->payout / node->samples;
-        if (value > highestValue)
+        if (my_player == player1)
         {
-            highestValue = value;
-            highestIndex = i;
+            if (state.board[i] == 1)
+            {
+                int row = i / 9;
+                int col = i % 9;
+
+                if (row + col < 9)
+                {
+                    doMiniMax = false;
+                    break;
+                }
+            }
         }
+        else
+        {
+            if (state.board[i] == 2)
+            {
+                int row = i / 9;
+                int col = i % 9;
+
+                if (row + col > 7)
+                {
+                    doMiniMax = false;
+                    break;
+                }
+            }
+        }
+    }
+
+    if (doMiniMax)
+    {
+        unsigned maxDepth = 1;
+        Move move, bestMove;
+        int moveValue = runMiniMax(0, maxDepth, endTime, move);
+        bestMove = move;
+        while (moveValue != TIMEOUT && moveValue != WIN)
+        {
+            bestMove = move;
+            ++maxDepth;
+
+            if (moveVectorCache->size() < maxDepth)
+            {
+                moveVectorCache->push_back(new std::vector<Move>());
+                bestMoveVectorCache->push_back(new std::vector<Move>());
+            }
+
+            moveValue = runMiniMax(0, maxDepth, endTime, move);
+        }
+
+        if (verbose != -1)
+        {
+            std::cerr << "Reached a depth of " << maxDepth << std::endl;
+        }
+
+        return bestMove;
+    }
+    else
+    {
+        tree = new MoveTree();
+
+        std::vector<Move> stateMoves;
+        state.getMoves(stateMoves);
+        std::vector<MoveTree::MoveTreeNode*>* nodeChildren = new std::vector<MoveTree::MoveTreeNode*>();
+
+        for (auto& m : stateMoves)
+        {
+            ChineseCheckersState stateCopy;
+            getStateCopy(tree->getRoot(), stateCopy);
+            auto payout = playRandomDepth(stateCopy);
+            nodeChildren->push_back(new MoveTree::MoveTreeNode(1, payout, calculateUCBValue(1, payout), m, tree->getRoot()));
+            ++totalSamples;
+        }
+
+        tree->getRoot()->addChildren(nodeChildren);
+
+        size_t numThreads = threadPool->getNumThreads();
+        std::function<void(void*)> runMonteCarloFunction = bind(&Agent::runMonteCarlo, this, std::placeholders::_1);
+        for (size_t i = 0; i < numThreads; ++i)
+        {
+            threadPool->queueJob(runMonteCarloFunction, nullptr);
+        }
+
+        while (threadPool->getQueuedJobs() > 0)
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+
+        auto node = tree->getRoot()->get(0);
+        int64_t highestValue = node->payout / node->samples;
+        int highestIndex = 0;
 
         if (verbose == 1)
         {
-            std::cerr << node->getMove() << " " << node->samples << " samples; avg: " << value << std::endl;
+            std::cerr << node->getMove() << " " << node->samples << " samples; avg: " << highestValue << std::endl;
         }
-    }
 
-    if (verbose != -1)
-    {
-        std::cerr << "Deepest depth: " << deepestDepth << " Total simulations: " << totalSamples << std::endl;
-    }
+        for (unsigned i = 1; i < tree->getRoot()->getSize(); ++i)
+        {
+            node = tree->getRoot()->get(i);
+            int64_t value = node->payout / node->samples;
+            if (value > highestValue)
+            {
+                highestValue = value;
+                highestIndex = i;
+            }
 
-    Move retMove = tree->getRoot()->get(highestIndex)->getMove();
-    delete tree;
-    return retMove;
+            if (verbose == 1)
+            {
+                std::cerr << node->getMove() << " " << node->samples << " samples; avg: " << value << std::endl;
+            }
+        }
+
+        if (verbose != -1)
+        {
+            std::cerr << "Deepest depth: " << deepestDepth << " Total simulations: " << totalSamples << std::endl;
+        }
+
+        Move retMove = tree->getRoot()->get(highestIndex)->getMove();
+        delete tree;
+        return retMove;
+    }
 }
 
 Players Agent::playGame(Agent& player1, Agent& player2)
@@ -386,6 +505,88 @@ std::string Agent::readMsg() const
     msg.erase(msg.find_last_not_of(WhiteSpace) + 1);
 
     return msg;
+}
+
+int Agent::runMiniMax(unsigned depth, unsigned maxDepth, std::chrono::system_clock::time_point& endTime, Move& move)
+{
+    if (depth >= maxDepth)
+    {
+        return evaluatePosition(state);
+    }
+
+    if (std::chrono::system_clock::now() >= endTime)
+    {
+        return TIMEOUT;
+    }
+
+    if (state.gameOver())
+    {
+        if (state.winner() == state.currentPlayer)
+        {
+            return WIN;
+        }
+        else
+        {
+            return LOSE;
+        }
+    }
+
+    std::vector<Move>* moves = moveVectorCache->at(depth);
+    state.getMoves(*moves);
+    std::vector<Move>* bestMoves = bestMoveVectorCache->at(depth);
+    bestMoves->clear();
+    int bestValue = LOSE;
+
+    for (unsigned i = 0; i < moves->size(); ++i)
+    {
+        Move moveToMake = moves->at(i);
+        int fromRow = moveToMake.from / 9;
+        int fromCol = moveToMake.from % 9;
+        int toRow = moveToMake.to / 9;
+        int toCol = moveToMake.to % 9;
+
+        if (my_player == player1)
+        {
+            if (fromRow + fromCol > toRow + toCol)
+            {
+                continue;
+            }
+        }
+        else
+        {
+            if (toRow + toCol > fromRow + fromCol)
+            {
+                continue;
+            }
+        }
+
+        state.applyMove(moveToMake);
+        state.swapTurn();
+
+        int value = runMiniMax(depth + 1, maxDepth, endTime, move);
+
+        state.swapTurn();
+        state.undoMove(moveToMake);
+
+        if (value == TIMEOUT)
+        {
+            return TIMEOUT;
+        }
+
+        if (value > bestValue)
+        {
+            bestValue = value;
+            bestMoves->clear();
+        }
+
+        if (value == bestValue)
+        {
+            bestMoves->push_back(moves->at(i));
+        }
+    }
+
+    move = bestMoves->at(rand() % bestMoves->size());
+    return bestValue;
 }
 
 void Agent::runMonteCarlo(void*)

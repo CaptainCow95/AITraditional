@@ -16,7 +16,7 @@ int main(int argc, char **argv)
     std::cerr << "-e                      Sets the exploration constant of the UCB calculation" << std::endl;
 
     // Uncomment for an example of playing an AI against itself.
-#define TRAIN
+    //#define TRAIN
 #ifdef TRAIN
     std::vector<int> depths, explorationConstants;
     depths.push_back(5);

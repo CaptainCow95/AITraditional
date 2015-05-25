@@ -41,6 +41,7 @@ private:
     int playRandomDepth(ChineseCheckersState& state);
     void printAndRecvEcho(const std::string& msg) const;
     std::string readMsg() const;
+    int runMiniMax(unsigned depth, unsigned maxDepth, std::chrono::system_clock::time_point& endTime, Move& move);
     void runMonteCarlo(void*);
     int simulate(MoveTree::MoveTreeNode* node);
     int simulate(MoveTree::MoveTreeNode* node, Move m);
@@ -48,14 +49,17 @@ private:
     std::vector<std::string> tokenizeMsg(const std::string& msg) const;
     void waitForStart();
 
-    const int WIN = 200;
-    const int LOSE = -200;
+    const int WIN = 0;
+    const int LOSE = -400;
+    const int TIMEOUT = INT_MAX;
 
     Players current_player;
     Players my_player;
     std::string name;
     std::string opp_name;
 
+    std::vector<std::vector<Move>*>* moveVectorCache;
+    std::vector<std::vector<Move>*>* bestMoveVectorCache;
     ThreadPool* threadPool;
     int deepestDepth;
     int maxDepth = 10;

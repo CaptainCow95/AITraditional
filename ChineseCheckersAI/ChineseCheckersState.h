@@ -71,6 +71,9 @@ public:
     // Translates a sequence of tokens from the move format used to the local move type
     Move translateToLocal(const std::vector<std::string> &tokens) const;
 
+    // Swaps whose turn it is
+    void swapTurn();
+
     std::array<int, 81> board;
     int currentPlayer;
 
@@ -79,8 +82,6 @@ private:
     void getMovesJump(std::vector<Move> &moves, unsigned from) const;
     void getMovesJumpRecursive(std::vector<Move> &move, std::array<bool, 81>& seen, unsigned from, unsigned at) const;
     bool checkJumpMove(std::array<bool, 81>& seen, unsigned moveTo, unsigned last) const;
-
-    void swapTurn();
 
     bool player1Wins() const;
     bool player2Wins() const;
