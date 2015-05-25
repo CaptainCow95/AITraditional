@@ -4,6 +4,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <climits>
 #include <vector>
 #include "ChineseCheckersState.h"
 #include "ThreadPool.h"

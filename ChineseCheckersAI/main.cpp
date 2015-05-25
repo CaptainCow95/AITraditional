@@ -1,4 +1,5 @@
 #include <cstddef>
+#include <cstring>
 #include <iostream>
 
 #include "Agent.h"
